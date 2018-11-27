@@ -131,8 +131,11 @@ t_emgPrime = (1:length(emgCrop))/ fs_emg/60;%Minutes
 t_imuPrime = (1:length(imuCrop))/fs_imu/60;%Minutes
 
 %new matrix with cropped signals
+
+labelsImu = zeros(length(imuCrop),1);%create labels column in imus;
+
 emgPrime = [emgCrop(:,1:2),t_emgPrime'];
-imuPrime = [imuCrop(:,1:3),t_imuPrime'];
+imuPrime = [imuCrop(:,1:3),labelsImu,t_imuPrime'];
 %%
 figure(5);
 plot(t_imuPrime,imuCrop(:,1:3))
@@ -180,29 +183,23 @@ Nmat = repmat(t_imuPrime',[1 numel(emgTrans)]);%create a matrix to compare
                                         %las imu
 %closestvals = t_imuPrime(indices);
 
-labelsImu = zeros(length(imuPrime),1);%create labels column in imus;
 labelsImu(indices) = labelsEmg(transIdx);%relate labels from emg to corresponding
                                 %indices in imus   
                                 
-labs = 0:63;                                
+labs = 1:63;%for miguel
+%labs = 1:59;%for mikel
 for k = 1:length(indices)-1
-
-    for j = 2:length(indices)
-        
-        if k>1 %example: from 90 to 100 but then should be from 101 to 200
-            indices(k)=indices(k)+1;
-        end
-        
-        if k==63 %I have to assign the last one manually cause idx is out of bound for labs
-        labelsImu(indices(k):indices(j)) = labs(64);
+    
+    j = k+1;
+    
+        if j==63 %I have to assign the last one manually cause idx is out of bound for labs
+        labelsImu(indices(k):length(labelsImu)) = labs(63);
         else, labelsImu(indices(k):indices(j)) = labs(k);
         end
-   
-
-    end
 
 end
         
+imuPrime(:,4) = labelsImu;
 
 disp('Magic! Label from EMG assigned to IMUs')
-imuPrime(:,5) = 0;
+
