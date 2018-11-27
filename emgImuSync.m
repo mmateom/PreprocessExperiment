@@ -32,7 +32,7 @@ disp('loaded')
 % disp('Resampling IMU...')
 % [imu,t_imu] = resample(imu_1(:,1),t1',fs_imu);
 % disp('Resampled IMU')
-%%
+
 %EMG
 subject = '4_LuisMiguel/';
 signal = 'EMG/';
@@ -102,7 +102,7 @@ meanStopImu = round(mean(indStop_imu),3);
 %find nearest value of meanInd in time vector and get the index
 %emg(:,3) has the time vector
 %imu(:,4) has the time vector
-%difemg is the lowest different between time vector and meanInd,
+%difemg is the lowest difference between time vector and meanInd,
 %so I take that index: startIdx
 
 [difStemg, startIdxEmg] = min(abs(emg(:,3)-meanStartEmg));
@@ -110,21 +110,25 @@ meanStopImu = round(mean(indStop_imu),3);
 [difSpemg, stopIdxEmg]  = min(abs(emg(:,3)-meanStopEmg));
 [difSpimu, stopIdxImu]  = min(abs(imu_1(:,4)-meanStopImu));
 
-%% crop from the start index till the end
+%% crop from the start index till stop index
 
-emg_prime = emg(startIdxEmg:stopIdxEmg,:);
-imu_prime = imu_1(startIdxImu:stopIdxImu,:);
+emgCrop = emg(startIdxEmg:stopIdxEmg,:);
+imuCrop = imu_1(startIdxImu:stopIdxImu,:);
 
-t_emg_prime = (1:length(emg_prime))/ fs_emg/60;%Minutes
-t_imu_prime = (1:length(imu_prime))/fs_imu/60;%Minutes
+t_emgPrime = (1:length(emgCrop))/ fs_emg/60;%Minutes
+t_imuPrime = (1:length(imuCrop))/fs_imu/60;%Minutes
+
+%new matrix with cropped signals
+emgPrime = [emgCrop(:,1:2),t_emgPrime'];
+imuPrime = [imuCrop(:,1:3),t_imuPrime'];
 
 figure;
-plot(t_imu_prime,imu_prime(:,1:3))
+plot(t_imuPrime,imuCrop(:,1:3))
 figure;
-plot(t_emg_prime,emg_prime(:,1))
-clearvars -except imu_1 emg fs_emg fs_imu emg_prime imu_prime t_emg_prime t_imu_prime
+plot(t_emgPrime,emgCrop(:,1))
 
 %% IMU Labeling
+%clearvars -except imu_1 emg fs_emg fs_imu emgPrime imuPrime t_emgPrime t_imuPrime
 
 %EMG is 2048 Hz and IMU 200 Hz:
 % CÓMO ASIGNAR LAS LABELS EN DOS TIME VECTORS DIFERENTES?
@@ -149,10 +153,22 @@ clearvars -except imu_1 emg fs_emg fs_imu emg_prime imu_prime t_emg_prime t_imu_
 % que la label corresponde a ese time stamp en la imu
 % 
 % diff = abs(timeEMG-timeIMU) --> min(diff) gets the index that approaches 0
-% 4.7-4.5 = 0.2 at idx 6 --> min(diff) = 6
+% 4.7-4.5 = 0.2 at idx 6 in emg --> min(diff) = 6
 
 
 
 
+% matEmgTime = repmat(t_emgPrime,[1 numel(t_imuPrime)]);
+% [minval,idx] = min(abs(matEmgTime-t_imuPrime'),[],1);%gives index of the emg time vector
+
+for i = 1:numel(t_imuPrime)
+    difTime(:,i) = abs(t_emgPrime-t_imuPrime(:,i));    
+end
+
+[val, idxDiff] = min(difTime,[],1);
+%%
+
+labelsEmg = emg(:,2);
+imuPrime(:,4) = labelsEmg(idx);
 
 
