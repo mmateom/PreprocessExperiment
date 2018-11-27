@@ -57,10 +57,22 @@ figure(1)
 plot(t_imu,imu_1)
 figure(2)
 plot(t_emg,emg(:,8));%take channel 1 from EMG
+xlim([0 40])
+clearvars -except t_imu t_emg emg imu_1 fs_imu fs_emg
+%% Normalice data
+
+emg_z = normalize(emg(:,8));
+imu_z = normalize(imu_1);
+
+%%
+figure(3)
+plot(t_imu,imu_z)
+figure(4)
+plot(t_emg,emg_z);%take channel 1 from EMG
 
 %create new arrays
-emg = [emg(:,8),emg(:,5),t_emg'];%1st channel,labels,time vector
-imu_1 = [imu_1,t_imu'];
+emg = [emg_z,emg(:,5),t_emg'];%1st channel,labels,time vector
+imu_1 = [imu_z,t_imu'];
 
 clc;
 %% Syncro
@@ -84,14 +96,14 @@ indStop_emg  = [pkStop1emg,pkStop2emg,pkStop3emg];
 indStop_imu  = [pkStop1imu,pkStop2imu,pkStop3imu];
 
 %%
-clearvars -except imu_1 emg fs_emg fs_imu indStart_emg indStart_imu indStop_emg indStop_imu
+%clearvars -except imu_1 emg fs_emg fs_imu indStart_emg indStart_imu indStop_emg indStop_imu
 
 %calculate mean of peaks
-meanStartEmg = round(mean(indStart_emg),3);
-meanStartImu = round(mean(indStart_imu),3);
+meanStartEmg = mean(indStart_emg);
+meanStartImu = mean(indStart_imu);
 
-meanStopEmg = round(mean(indStop_emg),3);
-meanStopImu = round(mean(indStop_imu),3);
+meanStopEmg = mean(indStop_emg);
+meanStopImu = mean(indStop_imu);
 %%
 %t_dif = abs(meanStartEmg-meanStartImu);
 
@@ -121,10 +133,10 @@ t_imuPrime = (1:length(imuCrop))/fs_imu/60;%Minutes
 %new matrix with cropped signals
 emgPrime = [emgCrop(:,1:2),t_emgPrime'];
 imuPrime = [imuCrop(:,1:3),t_imuPrime'];
-
-figure;
+%%
+figure(5);
 plot(t_imuPrime,imuCrop(:,1:3))
-figure;
+figure(6);
 plot(t_emgPrime,emgCrop(:,1))
 
 %% IMU Labeling
@@ -132,7 +144,7 @@ plot(t_emgPrime,emgCrop(:,1))
 
 %EMG is 2048 Hz and IMU 200 Hz:
 % CÓMO ASIGNAR LAS LABELS EN DOS TIME VECTORS DIFERENTES?
-% 
+%------------METHOD 1: creates too large file, not working-----
 % una vez que el vector de tiempo del emg está relacionado con las labels,
 % cojo el índice en el que empieza una label, ese índice contiene el
 % tiempo en el que empieza.
@@ -155,20 +167,64 @@ plot(t_emgPrime,emgCrop(:,1))
 % diff = abs(timeEMG-timeIMU) --> min(diff) gets the index that approaches 0
 % 4.7-4.5 = 0.2 at idx 6 in emg --> min(diff) = 6
 
-
-
-
 % matEmgTime = repmat(t_emgPrime,[1 numel(t_imuPrime)]);
 % [minval,idx] = min(abs(matEmgTime-t_imuPrime'),[],1);%gives index of the emg time vector
 
-for i = 1:numel(t_imuPrime)
-    difTime(:,i) = abs(t_emgPrime-t_imuPrime(:,i));    
-end
+% for i = 1:numel(t_imuPrime)
+%     difTime(:,i) = abs(t_emgPrime-t_imuPrime(:,i));    
+% end
+% 
+% [val, idxDiff] = min(difTime,[],1);
+% %%
+% 
+% labelsEmg = emg(:,2);
+% imuPrime(:,4) = labelsEmg(idx);
+%---------------METHOD 2: Interpolation-
 
-[val, idxDiff] = min(difTime,[],1);
-%%
 
-labelsEmg = emg(:,2);
-imuPrime(:,4) = labelsEmg(idx);
+%tdiff: imu is longer than emg. If I want to interpolate
+%all the imu in the shorter period of the emg, I won't fit the whole imu.
+%Therefore I need to add (or in another case substract) the time that I
+%need to fit the whole imu in the emg frame
 
+t_imu_seg = (1:length(imuPrime(:,1)))/fs_imu;%secs
+
+temgseg = (1:length(emgPrime))/fs_emg;%secs
+
+tdiff = t_imu_seg(end) - temgseg(end);%this can be negative, 
+                                         % so it will substract
+                                         % automatically
+
+xemg2 = temgseg(:,1):1/fs_emg:temgseg(:,end)+tdiff;
+imuInterp = interp1(t_imu_seg,imuPrime(:,1:3),xemg2);
+
+figure;
+plot(t_imu_seg/60,imuPrime(:,1),'-r')
+figure;
+plot(xemg2/60,imuInterp(:,1),'-b');
+
+%---
+padding = zeros(floor(tdiff*fs_emg),2);
+emgPrimeData = [padding;emgPrime(:,1:2)];
+temg = (1:length(emgPrimeData(:,1)))/fs_emg;
+%---
+figure;
+plot(temg/60,emgPrimeData(:,1),'-r')
+figure;
+plot(xemg2/60,imuInterp(:,1),'-b');
+%% labels
+
+
+labels = emgPrimeData(:,2);
+imuInterp(:,4) = labels;
+imuInterp(:,5) = xemg2;
+
+%plot labels
+
+figure(70);
+subplot(2,1,1);plot(temg/60,emgPrimeData(:,1))
+subplot(2,1,2);plot(temg/60,emgPrimeData(:,2))
+figure(71);
+subplot(2,1,1);plot(xemg2/60,imuInterp(:,1));
+subplot(2,1,2);plot(xemg2/60,imuInterp(:,4))
 
