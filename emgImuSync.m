@@ -167,64 +167,42 @@ plot(t_emgPrime,emgCrop(:,1))
 % diff = abs(timeEMG-timeIMU) --> min(diff) gets the index that approaches 0
 % 4.7-4.5 = 0.2 at idx 6 in emg --> min(diff) = 6
 
-% matEmgTime = repmat(t_emgPrime,[1 numel(t_imuPrime)]);
-% [minval,idx] = min(abs(matEmgTime-t_imuPrime'),[],1);%gives index of the emg time vector
+labelsEmg = emgPrime(:,2);
 
-% for i = 1:numel(t_imuPrime)
-%     difTime(:,i) = abs(t_emgPrime-t_imuPrime(:,i));    
-% end
-% 
-% [val, idxDiff] = min(difTime,[],1);
-% %%
-% 
-% labelsEmg = emg(:,2);
-% imuPrime(:,4) = labelsEmg(idx);
-%---------------METHOD 2: Interpolation-
+%find the indeces where the difference between labels is not zero
+transIdx = find(diff(labelsEmg)~=0)+1;%plus one because diff has length(labels)-1
+emgTrans = t_emgPrime(transIdx);%relate indices with times of emg
 
+Nmat = repmat(t_imuPrime',[1 numel(emgTrans)]);%create a matrix to compare
+[minval,indices] = min(abs(Nmat-emgTrans),[],1);%indices from imu.
+                                        %te dice dónde ocurren las
+                                        %transiciones en la time vector de
+                                        %las imu
+%closestvals = t_imuPrime(indices);
 
-%tdiff: imu is longer than emg. If I want to interpolate
-%all the imu in the shorter period of the emg, I won't fit the whole imu.
-%Therefore I need to add (or in another case substract) the time that I
-%need to fit the whole imu in the emg frame
+labelsImu = zeros(length(imuPrime),1);%create labels column in imus;
+labelsImu(indices) = labelsEmg(transIdx);%relate labels from emg to corresponding
+                                %indices in imus   
+                                
+labs = 0:63;                                
+for k = 1:length(indices)-1
 
-t_imu_seg = (1:length(imuPrime(:,1)))/fs_imu;%secs
+    for j = 2:length(indices)
+        
+        if k>1 %example: from 90 to 100 but then should be from 101 to 200
+            indices(k)=indices(k)+1;
+        end
+        
+        if k==63 %I have to assign the last one manually cause idx is out of bound for labs
+        labelsImu(indices(k):indices(j)) = labs(64);
+        else, labelsImu(indices(k):indices(j)) = labs(k);
+        end
+   
 
-temgseg = (1:length(emgPrime))/fs_emg;%secs
+    end
 
-tdiff = t_imu_seg(end) - temgseg(end);%this can be negative, 
-                                         % so it will substract
-                                         % automatically
+end
+        
 
-xemg2 = temgseg(:,1):1/fs_emg:temgseg(:,end)+tdiff;
-imuInterp = interp1(t_imu_seg,imuPrime(:,1:3),xemg2);
-
-figure;
-plot(t_imu_seg/60,imuPrime(:,1),'-r')
-figure;
-plot(xemg2/60,imuInterp(:,1),'-b');
-
-%---
-padding = zeros(floor(tdiff*fs_emg),2);
-emgPrimeData = [padding;emgPrime(:,1:2)];
-temg = (1:length(emgPrimeData(:,1)))/fs_emg;
-%---
-figure;
-plot(temg/60,emgPrimeData(:,1),'-r')
-figure;
-plot(xemg2/60,imuInterp(:,1),'-b');
-%% labels
-
-
-labels = emgPrimeData(:,2);
-imuInterp(:,4) = labels;
-imuInterp(:,5) = xemg2;
-
-%plot labels
-
-figure(70);
-subplot(2,1,1);plot(temg/60,emgPrimeData(:,1))
-subplot(2,1,2);plot(temg/60,emgPrimeData(:,2))
-figure(71);
-subplot(2,1,1);plot(xemg2/60,imuInterp(:,1));
-subplot(2,1,2);plot(xemg2/60,imuInterp(:,4))
-
+disp('Magic! Label from EMG assigned to IMUs')
+imuPrime(:,5) = 0;
