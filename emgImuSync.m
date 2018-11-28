@@ -221,7 +221,7 @@ clearvars -except imus emg subject_name mypath
 disp('Magic! EMG and IMUs sychronized!')
 
 %gonna save your data in the same folder
-yourFolder = [mypath,'SyncData'];
+yourFolder = [mypath,'SyncRawData'];
 if ~exist(yourFolder, 'dir')
    mkdir(yourFolder)
 end
