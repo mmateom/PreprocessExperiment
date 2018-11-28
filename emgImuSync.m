@@ -1,4 +1,4 @@
-%% EMG & IMU syncro
+%% EMG & IMU synchro
 
 clear;clc;
 set(0,'defaultfigurewindowstyle','docked');
@@ -226,10 +226,10 @@ if ~exist(yourFolder, 'dir')
    mkdir(yourFolder)
 end
 
-disp(['Saving data in: ',yourFolder,'/'])
+disp(['Saving synced, raw data in: ',yourFolder,'/'])
 filename = [subject_name,'_data.mat'];
 disp(['File name: ',filename])
 save([yourFolder,'/',filename],'imus','emg')  % function form
-disp(['Look in: ',yourFolder, '/ folder for your synced data'])
+disp(['Look in: ',yourFolder, '/ folder for your synced, raw data'])
 
 
