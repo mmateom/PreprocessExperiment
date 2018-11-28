@@ -2,7 +2,7 @@
 
 clear;clc;
 set(0,'defaultfigurewindowstyle','docked');
-path = '/Users/mikel/Desktop/Data from GOOD experiments_1/';
+mypath = '/Users/mikel/Desktop/Data from GOOD experiments_1/';
 
 %%%set freq
 fs_imu = 100; %Miguel has an fs of 100 Hz
@@ -20,7 +20,7 @@ subject = '4_LuisMiguel/';
 signal = 'IMU/';
 file = 'Luis_Trial1_NoWeight_0.txt';
 
-nomefile = strcat(path,subject,signal,file);%load the IMUs
+nomefile = strcat(mypath,subject,signal,file);%load the IMUs
 
 % mon = {'s1','s2','s3','s4','s5','s6'}; %s1 = sensor 1
 mon = {'s1','s2','s3'}; %MIGUEL SOLO USA 3 SENSORES
@@ -54,7 +54,7 @@ signal = 'EMG/';
 file = 'Luis_NoWeight_1.mat';
 
 disp('Loading EMG 1...')
-sub = load (strcat(path,subject,signal,file));
+sub = load (strcat(mypath,subject,signal,file));
 emg = sub.D.Data;% I need all data to take the labels too
 disp('Loaded EMG')
 
@@ -106,7 +106,7 @@ emg = [emg,t_emg'];%1st channel,labels,time vector
 imu_1 = [imu_1,t_imu];
 
 clearvars -except loadPeaks t_imu t_emg emg imu_1 fs_imu fs_emg imus mon subject_name...
-    pksStartEmg pksStartImu pksStopEmg pksStopImu
+    pksStartEmg pksStartImu pksStopEmg pksStopImu mypath
 
 
 %% Calculate mean of points
@@ -216,11 +216,20 @@ end
 
 emg = emgPrime;%assing proper name
 
-clearvars -except imus emg subject_name
+clearvars -except imus emg subject_name mypath
 
 disp('Magic! EMG and IMUs sychronized!')
-disp('Saving data...')
-save(strcat(subject_name,'_data.mat'),'imus','emg')  % function form
-disp('Look in your current folder for your synced data')
+
+%gonna save your data in the same folder
+yourFolder = [mypath,'SyncData'];
+if ~exist(yourFolder, 'dir')
+   mkdir(yourFolder)
+end
+
+disp(['Saving data in: ',yourFolder,'/'])
+filename = [subject_name,'_data.mat'];
+disp(['File name: ',filename])
+save([yourFolder,'/',filename],'imus','emg')  % function form
+disp(['Look in: ',yourFolder, '/ folder for your synced data'])
 
 
