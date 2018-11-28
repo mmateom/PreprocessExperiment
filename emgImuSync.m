@@ -1,17 +1,21 @@
 %% EMG & IMU syncro
+
 clear;clc;
 set(0,'defaultfigurewindowstyle','docked');
-
-
 path = '/Users/mikel/Desktop/Data from GOOD experiments_1/';
 
-%%%
+%%%set freq
 fs_imu = 100; %Miguel has an fs of 100 Hz
 fs_emg = 2048;
 
-%% Plot 1st channels, where the synchro has been done
-%IMUs
+loadPeaks = 1;%set to 1 to automatically load peak locations already obtained
+              %if not, you'll have to get them manually
 
+format long g %get rid of scientific notation
+
+%% Load IMU data
+
+subject_name = 'Luis';
 subject = '4_LuisMiguel/';
 signal = 'IMU/';
 file = 'Luis_Trial1_NoWeight_0.txt';
@@ -21,89 +25,101 @@ nomefile = strcat(path,subject,signal,file);%load the IMUs
 % mon = {'s1','s2','s3','s4','s5','s6'}; %s1 = sensor 1
 mon = {'s1','s2','s3'}; %MIGUEL SOLO USA 3 SENSORES
 
-disp('loading IMU 1...')
-data = readSatData2(nomefile,mon,20);
-imu_1 = data.(mon{1}).acc';%need only first IMU: Right-Wrist
-t1 = data.(mon{1}).t';%need only first IMU: Right-Wrist
-disp('loaded')
+disp('Loading IMU 1...')
+imus = readSatData2(nomefile,mon,20);
 
-% %% resample imu to constant fs
-% 
-% disp('Resampling IMU...')
-% [imu,t_imu] = resample(imu_1(:,1),t1',fs_imu);
-% disp('Resampled IMU')
+imu_1 = imus.(mon{1}).acc';%need only first IMU: Right-Wrist for synchro
+disp('Loaded')
 
-%EMG
+%% Check if it has pretty constant fs
+
+t1  = imus.(mon{1}).t;%need only first IMU: Right-Wrist
+dt = diff(t1);
+%figure;plot(dt);%10ms = 0.01s = 1/100Hz = 1/fs_imu;
+
+%% We can interpolate to get a better time vector taking into account drift factor
+
+factor = 1.0006;
+t_imuNoRes = (1:length(imu_1))/fs_imu/60; % mins
+
+%%interpolate t_imu with t1
+t_imuRes = resample(t1*factor,t_imuNoRes');%milisecs
+%get it in minutes
+t_imu =(t_imuRes-t_imuRes(1))/1000/60; %from milisecs to secs to minutes
+%figure;plot(t_imu,imu_1);
+%% Load EMG data
+
 subject = '4_LuisMiguel/';
 signal = 'EMG/';
 file = 'Luis_NoWeight_1.mat';
 
-disp('loading EMG 1...')
+disp('Loading EMG 1...')
 sub = load (strcat(path,subject,signal,file));
 emg = sub.D.Data;% I need all data to take the labels too
-disp('loaded')
+disp('Loaded EMG')
 
-%plot both: get VISUALLY the index. 
-%Store index in workspace from graph with right
-%click --> Export cursor data
+%Remember :P --> samples = time*fs 
 
-%samples = time*fs
-
-t_imu = (1:length(imu_1)) / fs_imu /60; % Minutes
+%create time vector for emg
 t_emg = (1:length(emg)) / fs_emg /60; % Minutes
 
+%% Get synchronization spikes from EMG and IMU - VISUALLY
+if ~loadPeaks
+    figure(1);title('IMU Sensor 1 acceleration: START');
+    plot(t_imu,imu_1(:,1))
+    zoom on
+    waitfor(gcf,'CurrentCharacter', char(13))
+    zoom reset
+    zoom off
+    [pksStartImu,~] = ginput(3);%3 spikes for start 
 
-figure(1)
-plot(t_imu,imu_1)
-figure(2)
-plot(t_emg,emg(:,8));%take channel 1 from EMG
-xlim([0 40])
-clearvars -except t_imu t_emg emg imu_1 fs_imu fs_emg
-%% Normalice data
+    figure(2);title('IMU Sensor 1 acceleration: STOP');
+    plot(t_imu,imu_1(:,1))
+    zoom on
+    waitfor(gcf,'CurrentCharacter', char(13))
+    zoom reset
+    zoom off
+    [pksStopImu,~] = ginput(3);%3 spikes for stop 
 
-emg_z = normalize(emg(:,8));
-imu_z = normalize(imu_1);
+    figure(3);title('EMG channel 1: START');
+    plot(t_emg,emg(:,8));%take channel 1 from EMG
+    xlim([0 40])
+    zoom on
+    waitfor(gcf,'CurrentCharacter', char(13))
+    zoom reset
+    zoom off
+    [pksStartEmg,~] = ginput(3);
 
-%%
-figure(3)
-plot(t_imu,imu_z)
-figure(4)
-plot(t_emg,emg_z);%take channel 1 from EMG
+    figure(4);title('EMG channel 1: STOP');
+    plot(t_emg,emg(:,8));%take channel 1 from EMG
+    xlim([0 40])
+    zoom on
+    waitfor(gcf,'CurrentCharacter', char(13))
+    zoom reset
+    zoom off
+    [pksStopEmg,~] = ginput(3);
 
-%create new arrays
-emg = [emg_z,emg(:,5),t_emg'];%1st channel,labels,time vector
-imu_1 = [imu_z,t_imu'];
+    save(strcat(subject_name,'_syncPks.mat'),'pksStartEmg','pksStartImu','pksStopEmg','pksStopImu')
+end
+%% Create new arrays
+emg = [emg,t_emg'];%1st channel,labels,time vector
+imu_1 = [imu_1,t_imu];
 
-clc;
-%% Syncro
-clearvars -except imu_1 emg fs_emg fs_imu
-%get VISUALLY the time for each peack of both signals, they'll be different
-%these are in minutes.
+clearvars -except loadPeaks t_imu t_emg emg imu_1 fs_imu fs_emg imus mon subject_name...
+    pksStartEmg pksStartImu pksStopEmg pksStopImu
 
-%start peaks
-pkStart1emg = 0.3575;pkStart1imu = 1.3810;%en realidad 1.3810,pero 1 es min y 0.3810 son los segundos
-pkStart2emg = 0.3896;pkStart2imu = 1.4140;
-pkStart3emg = 0.4200;pkStart3imu = 1.4460;
 
-%end peaks
-pkStop1emg = 33.26;pkStop1imu = 35.70;
-pkStop2emg = 33.28;pkStop2imu = 35.73;
-pkStop3emg = 33.31;pkStop3imu = 35.75;
+%% Calculate mean of points
+%clearvars -except imu_1 emg fs_emg fs_imu indStart_emg indStart_imu indStop_emg indStop_imu subject_name
 
-indStart_emg = [pkStart1emg,pkStart2emg,pkStart3emg];
-indStart_imu = [pkStart1imu,pkStart2imu,pkStart3imu];
-indStop_emg  = [pkStop1emg,pkStop2emg,pkStop3emg];
-indStop_imu  = [pkStop1imu,pkStop2imu,pkStop3imu];
-
-%%
-%clearvars -except imu_1 emg fs_emg fs_imu indStart_emg indStart_imu indStop_emg indStop_imu
-
+%LOADS THE PEAKS IF STATED ABOVE
+if loadPeaks,load(strcat(subject_name,'_syncPks.mat'));end
 %calculate mean of peaks
-meanStartEmg = mean(indStart_emg);
-meanStartImu = mean(indStart_imu);
+meanStartEmg = mean(pksStartEmg);
+meanStartImu = mean(pksStartImu);
 
-meanStopEmg = mean(indStop_emg);
-meanStopImu = mean(indStop_imu);
+meanStopEmg = mean(pksStopEmg);
+meanStopImu = mean(pksStopImu);
 %%
 %t_dif = abs(meanStartEmg-meanStartImu);
 
@@ -112,14 +128,14 @@ meanStopImu = mean(indStop_imu);
 %canal 1 de emg con un IMU
 
 %find nearest value of meanInd in time vector and get the index
-%emg(:,3) has the time vector
+%emg(:,end) has the time vector
 %imu(:,4) has the time vector
 %difemg is the lowest difference between time vector and meanInd,
 %so I take that index: startIdx
 
-[difStemg, startIdxEmg] = min(abs(emg(:,3)-meanStartEmg));
+[difStemg, startIdxEmg] = min(abs(emg(:,end)-meanStartEmg));
 [difStimu, startIdxImu] = min(abs(imu_1(:,4)-meanStartImu));
-[difSpemg, stopIdxEmg]  = min(abs(emg(:,3)-meanStopEmg));
+[difSpemg, stopIdxEmg]  = min(abs(emg(:,end)-meanStopEmg));
 [difSpimu, stopIdxImu]  = min(abs(imu_1(:,4)-meanStopImu));
 
 %% crop from the start index till stop index
@@ -134,43 +150,18 @@ t_imuPrime = (1:length(imuCrop))/fs_imu/60;%Minutes
 
 labelsImu = zeros(length(imuCrop),1);%create labels column in imus;
 
-emgPrime = [emgCrop(:,1:2),t_emgPrime'];
+emgPrime = [emgCrop(:,1:end-1),t_emgPrime'];
 imuPrime = [imuCrop(:,1:3),labelsImu,t_imuPrime'];
 %%
-figure(5);
-plot(t_imuPrime,imuCrop(:,1:3))
-figure(6);
-plot(t_emgPrime,emgCrop(:,1))
-
+figure(5);suptitle('Cropped signals. Displaying imu 1 and emg channel 1') 
+subplot(2,1,1);plot(t_imuPrime,imuCrop(:,1:3))
+subplot(2,1,2);plot(t_emgPrime,emgCrop(:,8))%channel 1
+pause(2)
+close all
 %% IMU Labeling
 %clearvars -except imu_1 emg fs_emg fs_imu emgPrime imuPrime t_emgPrime t_imuPrime
 
-%EMG is 2048 Hz and IMU 200 Hz:
-% CÓMO ASIGNAR LAS LABELS EN DOS TIME VECTORS DIFERENTES?
-%------------METHOD 1: creates too large file, not working-----
-% una vez que el vector de tiempo del emg está relacionado con las labels,
-% cojo el índice en el que empieza una label, ese índice contiene el
-% tiempo en el que empieza.
-% 
-% ------------
-% index    | 6
-% -------------
-% timeEMG  | 4.7
-% ------------
-% EMGs.....|...
-% ------------
-% label    | 2 = drinking
-% ------------
-% 
-% 
-% Si comparo (si calculo la diferencia de) ese timestamp con el todo el vector de
-% tiempo del imu y cojo el índice que más se acerque a 0, significará
-% que la label corresponde a ese time stamp en la imu
-% 
-% diff = abs(timeEMG-timeIMU) --> min(diff) gets the index that approaches 0
-% 4.7-4.5 = 0.2 at idx 6 in emg --> min(diff) = 6
-
-labelsEmg = emgPrime(:,2);
+labelsEmg = emgPrime(:,5);%labels
 
 %find the indeces where the difference between labels is not zero
 transIdx = find(diff(labelsEmg)~=0)+1;%plus one because diff has length(labels)-1
@@ -185,7 +176,8 @@ Nmat = repmat(t_imuPrime',[1 numel(emgTrans)]);%create a matrix to compare
 
 labelsImu(indices) = labelsEmg(transIdx);%relate labels from emg to corresponding
                                 %indices in imus   
-                                
+
+%assign labels to the rest of the indexes
 labs = 1:63;%for miguel
 %labs = 1:59;%for mikel
 for k = 1:length(indices)-1
@@ -199,7 +191,36 @@ for k = 1:length(indices)-1
 
 end
         
-imuPrime(:,4) = labelsImu;
 
-disp('Magic! Label from EMG assigned to IMUs')
+%% Synchronice the rest of the imus
+
+
+for s = 1:numel(mon)%number of sensors
+    acc = imus.(mon{s}).acc';
+    gyr = imus.(mon{s}).gyr';
+    mag = imus.(mon{s}).mag';
+    q   = imus.(mon{s}).q';
+    
+    %crop 
+    acc = acc(startIdxImu:stopIdxImu,:);
+    gyr = gyr(startIdxImu:stopIdxImu,:);
+    mag = mag(startIdxImu:stopIdxImu,:);    
+    q   = q(startIdxImu:stopIdxImu,:); 
+    
+    imus.(mon{s}).acc    = acc;
+    imus.(mon{s}).gyr    = gyr;
+    imus.(mon{s}).mag    = mag;
+    imus.(mon{s}).t      = t_imuPrime;
+    imus.(mon{s}).labels = labelsImu;
+end
+
+emg = emgPrime;%assing proper name
+
+clearvars -except imus emg subject_name
+
+disp('Magic! EMG and IMUs sychronized!')
+disp('Saving data...')
+save(strcat(subject_name,'_data.mat'),'imus','emg')  % function form
+disp('Look in your current folder for your synced data')
+
 
