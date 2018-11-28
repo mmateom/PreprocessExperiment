@@ -40,7 +40,7 @@ dt = diff(t1);
 %% We can interpolate to get a better time vector taking into account drift factor
 
 factor = 1.0006;
-t_imuNoRes = (1:length(imu_1))/fs_imu/60; % mins
+t_imuNoRes = (0:length(imu_1)-1)/fs_imu/60; % mins
 
 %%interpolate t_imu with t1
 t_imuRes = resample(t1*factor,t_imuNoRes');%milisecs
@@ -61,7 +61,7 @@ disp('Loaded EMG')
 %Remember :P --> samples = time*fs 
 
 %create time vector for emg
-t_emg = (1:length(emg)) / fs_emg /60; % Minutes
+t_emg = (0:length(emg)-1) / fs_emg /60; % Minutes
 
 %% Get synchronization spikes from EMG and IMU - VISUALLY
 if ~loadPeaks
@@ -140,34 +140,32 @@ meanStopImu = mean(pksStopImu);
 
 %% crop from the start index till stop index
 
-emgCrop = emg(startIdxEmg:stopIdxEmg,:);
-imuCrop = imu_1(startIdxImu:stopIdxImu,:);
+emg = emg(startIdxEmg:stopIdxEmg,:);
+imu_1 = imu_1(startIdxImu:stopIdxImu,:);
 
-t_emgPrime = (1:length(emgCrop))/ fs_emg/60;%Minutes
-t_imuPrime = (1:length(imuCrop))/fs_imu/60;%Minutes
+%new imu matrix with cropped signals
+labelsImu = zeros(length(imu_1),1);%create labels column in imus;
+statusImu = nan(length(imu_1),1);
+t_imu = imu_1(:,end);
+imu_1 = [imu_1(:,1:3),labelsImu,t_imu];
+t_emg = emg(:,end);
 
-%new matrix with cropped signals
-
-labelsImu = zeros(length(imuCrop),1);%create labels column in imus;
-
-emgPrime = [emgCrop(:,1:end-1),t_emgPrime'];
-imuPrime = [imuCrop(:,1:3),labelsImu,t_imuPrime'];
 %%
 figure(5);suptitle('Cropped signals. Displaying imu 1 and emg channel 1') 
-subplot(2,1,1);plot(t_imuPrime,imuCrop(:,1:3))
-subplot(2,1,2);plot(t_emgPrime,emgCrop(:,8))%channel 1
-pause(2)
+subplot(2,1,1);plot(t_imu,imu_1(:,1:3))
+subplot(2,1,2);plot(t_emg,emg(:,8))%channel 1
+pause(4)
 close all
-%% IMU Labeling
+%% IMU Labeling (I): Labels
 %clearvars -except imu_1 emg fs_emg fs_imu emgPrime imuPrime t_emgPrime t_imuPrime
 
-labelsEmg = emgPrime(:,5);%labels
+labelsEmg = emg(:,5);%labels
 
 %find the indeces where the difference between labels is not zero
-transIdx = find(diff(labelsEmg)~=0)+1;%plus one because diff has length(labels)-1
-emgTrans = t_emgPrime(transIdx);%relate indices with times of emg
+transIdx = (find(diff(labelsEmg)~=0)+1)';%plus one because diff has length(labels)-1
+emgTrans = t_emg(transIdx)';%relate indices with times of emg
 
-Nmat = repmat(t_imuPrime',[1 numel(emgTrans)]);%create a matrix to compare
+Nmat = repmat(t_imu,[1 numel(emgTrans)]);%create a matrix to compare
 [minval,indices] = min(abs(Nmat-emgTrans),[],1);%indices from imu.
                                         %te dice dónde ocurren las
                                         %transiciones en la time vector de
@@ -178,19 +176,56 @@ labelsImu(indices) = labelsEmg(transIdx);%relate labels from emg to correspondin
                                 %indices in imus   
 
 %assign labels to the rest of the indexes
-labs = 1:63;%for miguel
-%labs = 1:59;%for mikel
-for k = 1:length(indices)-1
+    %for miguel: 1:63, for mikel: 1:59
+for k = 1:length(indices)
     
     j = k+1;
     
-        if j==63 %I have to assign the last one manually cause idx is out of bound for labs
-        labelsImu(indices(k):length(labelsImu)) = labs(63);
-        else, labelsImu(indices(k):indices(j)) = labs(k);
+        if k == length(indices) %I have to assign the last one manually cause idx is out of bound for labs
+        labelsImu(indices(k):length(labelsImu)) = k;
+        else, labelsImu(indices(k):indices(j)) = k;
         end
 
 end
+       
+%% IMU Labeling (II): Status
+
+statusEmg = emg(:,7);%status
+
+%%find the indeces where the difference between labels is not zero
+transStatusIdx = (find(diff(statusEmg)~=0)+1)';%plus one because diff has length(labels)-1
+emgTransStatus = t_emg(transStatusIdx)';%relate indices with times of emg
+
+Nsmat = repmat(t_imu,[1 numel(emgTransStatus)]);%create a matrix to compare
+[minval,sindices] = min(abs(Nsmat-emgTransStatus),[],1);%indices from imu.
+                                        %te dice dónde ocurren las
+                                        %transiciones en la time vector de
+                                        %las imu
+
+
+statusImu(sindices) = statusEmg(transStatusIdx);%relate status from emg to corresponding
+                                                %indices in imus   
+
+%%assign status to the rest of the indexes
+
+status = 1:numel(transStatusIdx);
+
+statusImu(1:sindices(1)-1) = 5;
+for k = 1:length(sindices)
+    
+    j = k+1;
+
+        if k==length(sindices) %I have to assign the last one manually cause I need that status to go till the end
+               statusImu(sindices(k):length(statusImu)) = statusImu(sindices(k));
+        else,statusImu(sindices(k):sindices(j)-1) = statusImu(sindices(k));
+        end
         
+
+end
+     
+
+
+
 
 %% Synchronice the rest of the imus
 
@@ -207,14 +242,16 @@ for s = 1:numel(mon)%number of sensors
     mag = mag(startIdxImu:stopIdxImu,:);    
     q   = q(startIdxImu:stopIdxImu,:); 
     
+    %create new struct
     imus.(mon{s}).acc    = acc;
     imus.(mon{s}).gyr    = gyr;
     imus.(mon{s}).mag    = mag;
-    imus.(mon{s}).t      = t_imuPrime;
+    imus.(mon{s}).q      = q;
+    imus.(mon{s}).t      = t_imu;
     imus.(mon{s}).labels = labelsImu;
+    imus.(mon{s}).status = statusImu;
 end
 
-emg = emgPrime;%assing proper name
 
 clearvars -except imus emg subject_name mypath
 
