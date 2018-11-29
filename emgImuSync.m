@@ -192,11 +192,11 @@ labelsImu(indices) = labelsEmg(transIdx);%relate labels from emg to correspondin
 
 %assign labels to the rest of the indexes
     %for miguel: 1:63, for mikel: 1:59
-for k = 1:length(indices)
+for k = 1:numel(indices)
     
     j = k+1;
     
-        if k == length(indices) %I have to assign the last one manually cause idx is out of bound for labs
+        if k == numel(indices) %I have to assign the last one manually cause idx is out of bound for labs
         labelsImu(indices(k):length(labelsImu)) = k;
         else, labelsImu(indices(k):indices(j)) = k;
         end
@@ -276,14 +276,14 @@ disp('Magic! EMG and IMUs sychronized!')
 
 %gonna save your data in the subjects folder
 cd (mypath)
-cd ../../
-yourFolder = [pwd,'/SyncRawData'];
+cd ../
+yourFolder = [pwd,'/Step1_SyncedRawData'];
 if ~exist(yourFolder, 'dir')
    mkdir(yourFolder)
 end
 
 disp(['Saving synced, raw data in: ',yourFolder,'/'])
-filename = [name,'_data.mat'];
+filename = [name,'_SyncedData.mat'];
 disp(['File name: ',filename])
 save([yourFolder,'/',filename],'imuData','emgData')  % function form
 disp(['Look in: ',yourFolder, '/ folder for your synced, raw data'])
