@@ -1,43 +1,72 @@
 %% EMG & IMU synchro
 
 clear;clc;
-set(0,'defaultfigurewindowstyle','docked');
-mypath = '/Users/mikel/Desktop/Data from GOOD experiments_1/';
 
-%%%set freq
-fs_imu = 100; %Miguel has an fs of 100 Hz
-fs_emg = 2048;
+%% Load EMG and IMU data (must be in same folder)
+disp('Select the folder with your data in the dialogue')
+disp('Must have one .txt(imu) and one .mat(emg)')
+pause(3)
+
+mypath = uigetdir;%get path
+if isequal(mypath,0)%check if path is correct
+    warning('No folder selected');
+    return;
+end
+
+f = [dir(fullfile(mypath,'*mat')); dir(fullfile(mypath,'*txt'))];
+mon = {'s1','s2','s3'}; %select sensors to read MIGUEL
+%mon = {'s1','s2','s3','s4','s5','s6'}; %select sensors to read MIKEL
+
+for k = 1:length(f)
+  baseFileName = f(k).name;
+  fullFileName = fullfile(mypath, baseFileName);
+  if ~iscell(fullFileName)
+    fullFileName = {fullFileName};
+  end
+
+  [filepath,name,ext] = fileparts(fullFileName{1});
+  switch ext
+      case '.txt'
+        disp('Reading IMU file...')
+       imuData = readSatData2(fullFileName{1},mon,20);                   
+      otherwise, emgData = load(fullFileName{1});  %Data from all subjects
+          disp('Reading EMG file...')
+                 
+  end
+end
+
+disp('Loaded')
+clearvars -except imuData emgData mon name mypath
+
+%% Set some stuff
+
+set(0,'defaultfigurewindowstyle','docked');
+format long g %get rid of scientific notation
 
 loadPeaks = 1;%set to 1 to automatically load peak locations already obtained
               %if not, you'll have to get them manually
+              
+%% set fs
+fs_imu = 100; %Miguel has an fs of 100 Hz
+fs_emg = emgData.D.SamplingRate;%usually 2048 Hz
 
-format long g %get rid of scientific notation
+%% Load data matrices needed for synchro
 
-%% Load IMU data
+imu_1 = imuData.(mon{1}).acc';%need only first IMU: Right-Wrist for synchro
+t1  = imuData.(mon{1}).t;%need only first IMU: Right-Wrist
+emg = emgData.D.Data;
 
-subject_name = 'Luis';
-subject = '4_LuisMiguel/';
-signal = 'IMU/';
-file = 'Luis_Trial1_NoWeight_0.txt';
 
-nomefile = strcat(mypath,subject,signal,file);%load the IMUs
+%% Check if IMU has pretty constant fs
 
-% mon = {'s1','s2','s3','s4','s5','s6'}; %s1 = sensor 1
-mon = {'s1','s2','s3'}; %MIGUEL SOLO USA 3 SENSORES
-
-disp('Loading IMU 1...')
-imus = readSatData2(nomefile,mon,20);
-
-imu_1 = imus.(mon{1}).acc';%need only first IMU: Right-Wrist for synchro
-disp('Loaded')
-
-%% Check if it has pretty constant fs
-
-t1  = imus.(mon{1}).t;%need only first IMU: Right-Wrist
 dt = diff(t1);
 %figure;plot(dt);%10ms = 0.01s = 1/100Hz = 1/fs_imu;
 
-%% We can interpolate to get a better time vector taking into account drift factor
+%% Create time vectors
+
+%Remember :P --> samples = time*fs 
+
+%IMU: We can interpolate to get a better time vector taking into account drift factor
 
 factor = 1.0006;
 t_imuNoRes = (0:length(imu_1)-1)/fs_imu/60; % mins
@@ -47,20 +76,8 @@ t_imuRes = resample(t1*factor,t_imuNoRes');%milisecs
 %get it in minutes
 t_imu =(t_imuRes-t_imuRes(1))/1000/60; %from milisecs to secs to minutes
 %figure;plot(t_imu,imu_1);
-%% Load EMG data
 
-subject = '4_LuisMiguel/';
-signal = 'EMG/';
-file = 'Luis_NoWeight_1.mat';
-
-disp('Loading EMG 1...')
-sub = load (strcat(mypath,subject,signal,file));
-emg = sub.D.Data;% I need all data to take the labels too
-disp('Loaded EMG')
-
-%Remember :P --> samples = time*fs 
-
-%create time vector for emg
+%EMG
 t_emg = (0:length(emg)-1) / fs_emg /60; % Minutes
 
 %% Get synchronization spikes from EMG and IMU - VISUALLY
@@ -99,21 +116,20 @@ if ~loadPeaks
     zoom off
     [pksStopEmg,~] = ginput(3);
 
-    save(strcat(subject_name,'_syncPks.mat'),'pksStartEmg','pksStartImu','pksStopEmg','pksStopImu')
+    save(strcat(name,'_syncPks.mat'),'pksStartEmg','pksStartImu','pksStopEmg','pksStopImu')
 end
 %% Create new arrays
+
 emg = [emg,t_emg'];%1st channel,labels,time vector
 imu_1 = [imu_1,t_imu];
 
-clearvars -except loadPeaks t_imu t_emg emg imu_1 fs_imu fs_emg imus mon subject_name...
+clearvars -except loadPeaks t_imu t_emg emg imu_1 fs_imu fs_emg imuData mon name...
     pksStartEmg pksStartImu pksStopEmg pksStopImu mypath
 
-
 %% Calculate mean of points
-%clearvars -except imu_1 emg fs_emg fs_imu indStart_emg indStart_imu indStop_emg indStop_imu subject_name
 
 %LOADS THE PEAKS IF STATED ABOVE
-if loadPeaks,load(strcat(subject_name,'_syncPks.mat'));end
+if loadPeaks,load(strcat(name,'_syncPks.mat'));end
 %calculate mean of peaks
 meanStartEmg = mean(pksStartEmg);
 meanStartImu = mean(pksStartImu);
@@ -138,7 +154,7 @@ meanStopImu = mean(pksStopImu);
 [difSpemg, stopIdxEmg]  = min(abs(emg(:,end)-meanStopEmg));
 [difSpimu, stopIdxImu]  = min(abs(imu_1(:,4)-meanStopImu));
 
-%% crop from the start index till stop index
+%% Crop from the start index till stop index
 
 emg = emg(startIdxEmg:stopIdxEmg,:);
 imu_1 = imu_1(startIdxImu:stopIdxImu,:);
@@ -151,13 +167,12 @@ imu_1 = [imu_1(:,1:3),labelsImu,t_imu];
 t_emg = emg(:,end);
 
 %%
-figure(5);suptitle('Cropped signals. Displaying imu 1 and emg channel 1') 
-subplot(2,1,1);plot(t_imu,imu_1(:,1:3))
-subplot(2,1,2);plot(t_emg,emg(:,8))%channel 1
-pause(4)
-close all
+% figure(5);suptitle('Cropped signals. Displaying imu 1 and emg channel 1') 
+% subplot(2,1,1);plot(t_imu,imu_1(:,1:3))
+% subplot(2,1,2);plot(t_emg,emg(:,8))%channel 1
+% pause(4)
+% close all
 %% IMU Labeling (I): Labels
-%clearvars -except imu_1 emg fs_emg fs_imu emgPrime imuPrime t_emgPrime t_imuPrime
 
 labelsEmg = emg(:,5);%labels
 
@@ -223,18 +238,14 @@ for k = 1:length(sindices)
 
 end
      
-
-
-
-
-%% Synchronice the rest of the imus
+%% Synchronice the rest of the imus 
 
 
 for s = 1:numel(mon)%number of sensors
-    acc = imus.(mon{s}).acc';
-    gyr = imus.(mon{s}).gyr';
-    mag = imus.(mon{s}).mag';
-    q   = imus.(mon{s}).q';
+    acc = imuData.(mon{s}).acc';
+    gyr = imuData.(mon{s}).gyr';
+    mag = imuData.(mon{s}).mag';
+    q   = imuData.(mon{s}).q';
     
     %crop 
     acc = acc(startIdxImu:stopIdxImu,:);
@@ -243,30 +254,38 @@ for s = 1:numel(mon)%number of sensors
     q   = q(startIdxImu:stopIdxImu,:); 
     
     %create new struct
-    imus.(mon{s}).acc    = acc;
-    imus.(mon{s}).gyr    = gyr;
-    imus.(mon{s}).mag    = mag;
-    imus.(mon{s}).q      = q;
-    imus.(mon{s}).t      = t_imu;
-    imus.(mon{s}).labels = labelsImu;
-    imus.(mon{s}).status = statusImu;
+    imuData.(mon{s}).acc    = acc;
+    imuData.(mon{s}).gyr    = gyr;
+    imuData.(mon{s}).mag    = mag;
+    imuData.(mon{s}).q      = q;
+    imuData.(mon{s}).t      = t_imu;
+    imuData.(mon{s}).labels = labelsImu;
+    imuData.(mon{s}).status = statusImu;
+    imuData.fs = fs_imu;
 end
 
+%new struct for emg data
+emgData.data = emg(:,1:end-1);
+emgData.t = emg(:,end);
+emgData.fs = fs_emg;
 
-clearvars -except imus emg subject_name mypath
+clearvars -except imuData emgData name mypath
 
 disp('Magic! EMG and IMUs sychronized!')
 
-%gonna save your data in the same folder
-yourFolder = [mypath,'SyncRawData'];
+
+%gonna save your data in the subjects folder
+cd (mypath)
+cd ../../
+yourFolder = [pwd,'/SyncRawData'];
 if ~exist(yourFolder, 'dir')
    mkdir(yourFolder)
 end
 
 disp(['Saving synced, raw data in: ',yourFolder,'/'])
-filename = [subject_name,'_data.mat'];
+filename = [name,'_data.mat'];
 disp(['File name: ',filename])
-save([yourFolder,'/',filename],'imus','emg')  % function form
+save([yourFolder,'/',filename],'imuData','emgData')  % function form
 disp(['Look in: ',yourFolder, '/ folder for your synced, raw data'])
 
 
