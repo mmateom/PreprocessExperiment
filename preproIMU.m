@@ -1,21 +1,29 @@
 %% IMU prepro
+function [] = preproIMU(defpath,subjectName)
+clearvars -except defpath subjectName
+clc;
 
-clear;clc;
-set(0,'defaultfigurewindowstyle','docked');
+% by Mikel Mateo - University of Twente - November 2018 
+% for The BioRobotics Institute - Scuola Superiore Sant'Anna 
+
+%set(0,'defaultfigurewindowstyle','docked');
 %see: 60_PreproAllIMUDATA.pdf
 
 %% SUBJECT NAME
 
-subjectName = 'Luis';
+%subjectName = 'Luis';
 
 %% Load files
 
-defpath = '/Users/mikel/Desktop/Data from GOOD experiments_1/';
-[FileName,PathName,~] = uigetfile(fullfile(defpath,'Step1_SyncedRawData/','*.mat'),'select file');
-if isequal(FileName,0)
-    warning('No file selected');
-    return;
-end
+% defpath = '/Users/mikel/Desktop/Data from GOOD experiments_1/Sync';
+% [FileName,PathName,~] = uigetfile(fullfile(defpath,'Step1_SyncedRawData/','*.mat'),'select file');
+% if isequal(FileName,0)
+%     warning('No file selected');
+%     return;
+% end
+
+PathName = [defpath,'Step1_SyncedRawData/'];
+FileName = [subjectName,'_SyncedData'];
 data = load(strcat(PathName,FileName));  %Data from all subjects
 
 fs = data.imuData.fs;
@@ -82,8 +90,6 @@ end
 %Labels are the same in all sensors.
 %Find the indices in s1 and and I can use them with the rest
 
-
-
 idx = s1.status ==2;%get indices where status is 2
 labels = s1(idx,end-1);
 s1 = s1(idx,:);
@@ -130,7 +136,7 @@ if ~exist(yourFolder, 'dir')
    mkdir(yourFolder)
 end
 
-disp(['Saving preprocessed data in: ',yourFolder,'/'])
+disp(['Saving preprocessed data in: ',yourFolder])
 filename = [name,'.mat'];
 disp(['File name: ',filename])
 save([yourFolder,'/',filename],'dataIMULabeled')  % function form

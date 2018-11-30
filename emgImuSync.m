@@ -1,13 +1,23 @@
+function [] = emgImuSync(defpath,subjectName, loadPeaks)
 %% EMG & IMU synchro
 
-clear;clc;
+%INPUTS:
+    % defpath: has the default path for all your folders realted to the experiment
+    % subjecName: ejem...subjects' name
+    % loadPeaks: 0-load synchro peaks manually; 1-I already have them, load them for me
+    
+%OUTPUTS: no outputs
+
+% by Mikel Mateo - University of Twente - November 2018 
+% for The BioRobotics Institute - Scuola Superiore Sant'Anna 
 
 %% Load EMG and IMU data (must be in same folder)
 disp('Select the folder with your data in the dialogue')
 disp('Must have one .txt(imu) and one .mat(emg)')
 pause(3)
 
-mypath = uigetdir;%get path
+
+mypath = uigetdir(defpath);%get path
 if isequal(mypath,0)%check if path is correct
     warning('No folder selected');
     return;
@@ -36,15 +46,12 @@ for k = 1:length(f)
 end
 
 disp('Loaded')
-clearvars -except imuData emgData mon name mypath
+clearvars -except imuData emgData mon subjectName mypath defpath loadPeaks
 
 %% Set some stuff
 
 set(0,'defaultfigurewindowstyle','docked');
 format long g %get rid of scientific notation
-
-loadPeaks = 1;%set to 1 to automatically load peak locations already obtained
-              %if not, you'll have to get them manually
               
 %% set fs
 fs_imu = 100; %Miguel has an fs of 100 Hz
@@ -116,20 +123,34 @@ if ~loadPeaks
     zoom off
     [pksStopEmg,~] = ginput(3);
 
-    save(strcat(name,'_syncPks.mat'),'pksStartEmg','pksStartImu','pksStopEmg','pksStopImu')
+    %save the points
+    yourFolder = [defpath,'/SyncPeaks'];
+    if ~exist(yourFolder, 'dir')
+       mkdir(yourFolder)
+    end
+
+    disp(['Saving synchro peaks in: ',yourFolder,'/'])
+    filename = [subjectName,'_syncPks.mat'];
+    disp(['File name: ',filename])
+    save([yourFolder,'/',filename],'pksStartEmg','pksStartImu','pksStopEmg','pksStopImu')
+    disp(['Look in: ',yourFolder, 'folder for your synced, raw data'])
+
 end
 %% Create new arrays
 
 emg = [emg,t_emg'];%1st channel,labels,time vector
 imu_1 = [imu_1,t_imu];
 
-clearvars -except loadPeaks t_imu t_emg emg imu_1 fs_imu fs_emg imuData mon name...
-    pksStartEmg pksStartImu pksStopEmg pksStopImu mypath
+clearvars -except loadPeaks t_imu t_emg emg imu_1 fs_imu fs_emg imuData mon subjectName...
+    pksStartEmg pksStartImu pksStopEmg pksStopImu defpath yourFolder
 
 %% Calculate mean of points
 
 %LOADS THE PEAKS IF STATED ABOVE
-if loadPeaks,load(strcat(name,'_syncPks.mat'));end
+if loadPeaks
+    yourFolder = [defpath,'/SyncPeaks'];
+    load([yourFolder,'/',subjectName,'_syncPks.mat']);
+end
 %calculate mean of peaks
 meanStartEmg = mean(pksStartEmg);
 meanStartImu = mean(pksStartImu);
@@ -269,23 +290,23 @@ emgData.data = emg(:,1:end-1);
 emgData.t = emg(:,end);
 emgData.fs = fs_emg;
 
-clearvars -except imuData emgData name mypath
+clearvars -except imuData emgData subjectName defpath
 
 disp('Magic! EMG and IMUs sychronized!')
 
 
 %gonna save your data in the subjects folder
-cd (mypath)
-cd ../
-yourFolder = [pwd,'/Step1_SyncedRawData'];
+% cd (mypath)
+% cd ../
+yourFolder = [defpath,'/Step1_SyncedRawData'];
 if ~exist(yourFolder, 'dir')
    mkdir(yourFolder)
 end
 
-disp(['Saving synced, raw data in: ',yourFolder,'/'])
-filename = [name,'_SyncedData.mat'];
+disp(['Saving synced, raw data in: ',yourFolder])
+filename = [subjectName,'_SyncedData.mat'];
 disp(['File name: ',filename])
 save([yourFolder,'/',filename],'imuData','emgData')  % function form
-disp(['Look in: ',yourFolder, '/ folder for your synced, raw data'])
+disp(['Look in: ',yourFolder, 'folder for your synced, raw data'])
 
 
