@@ -27,24 +27,6 @@ s1 = struct2table(data.imuData.s1);
 s2 = struct2table(data.imuData.s2);
 s3 = struct2table(data.imuData.s3);
 
-
-
-% s1 = [data.imuData.s1.acc,data.imuData.s1.gyr,data.imuData.s1.mag,...
-%         data.imuData.s1.labels,data.imuData.s1.status];
-% s2 = [data.imuData.s2.acc,data.imuData.s2.gyr,data.imuData.s2.mag,...
-%         data.imuData.s2.labels,data.imuData.s2.status];
-% s3 = [data.imuData.s3.acc,data.imuData.s3.gyr,data.imuData.s3.mag,...
-%         data.imuData.s3.labels,data.imuData.s3.status];
-    
-s = {s1,s2,s3};
-% s.s4 = [data.imuData.s4.acc,data.imuData.s4.gyr,data.imuData.s1.mag,...
-%         data.imuData.s4.labels,data.imuData.s4.status];
-% s.s5 = [data.imuData.s5.acc,data.imuData.s5.gyr,data.imuData.s2.mag,...
-%         data.imuData.s5.labels,data.imuData.s5.status];
-% s.s6 = [data.imuData.s6.acc,data.imuData.s6.gyr,data.imuData.s3.mag,...
-%         data.imuData.s6.labels,data.imuData.s6.status];
-%figure(1);plot(acc)
-
 analysis = 0;
 
 if analysis
@@ -100,70 +82,45 @@ end
 %Labels are the same in all sensors.
 %Find the indices in s1 and and I can use them with the rest
 
-sensor1 = s{1,1};
-idxStatus = find(sensor1.status==2);%find the indexes where status = 2
+idx = s1.status ==2;
+s1 = s1(idx,:);s1.t = [];s1.q = [];s1.status = [];%get rid of time, quaternions and status
+s2 = s2(idx,:);s2.t = [];s2.q = [];s2.status = [];%get rid of time, quaternions and status
+s3 = s3(idx,:);s3.t = [];s3.q = [];s3.status = [];%get rid of time, quaternions and status
 
-preWindowed = cell(1,3);
+s = {s1,s2,s3};
 
-for tab = 1:numel(s)
-      labels = s{tab}.labels(idxStatus,:);
-      acc = s{tab}.acc(idxStatus,:);
-      gyr = s{tab}.gyr(idxStatus,:);
-      mag = s{tab}.mag(idxStatus,:);
-      
-      preWindowed{tab}=table(acc,gyr,mag,labels);
-             
+clearvars -except s subjectName defpath
+
+%% Calculate SMV of acc, gyr and mag (sqrt(ax^2+ay^2+az^2))
+
+vars = {'acc','gyr','mag'};
+func = @(x) sqrt(x(:,1).^2 + x(:,2).^2 + x(:,3).^2);
+for i = 1:numel(s)
+    smv = varfun(func,s{i}(:,vars));%returns table
+    s{i}.smvAcc = smv{:,1};
+    s{i}.smvGyr = smv{:,2};
+    s{i}.smvMag = smv{:,3};
+    
+    %reorder table
+    s{i}= [s{i}(:,2),s{i}(:,1),s{i}(:,3), s{i}(:,5:7), s{i}(:,4)];
+    s{i}.Properties.VariableNames = ...
+            {['acc',num2str(i)],['gyr',num2str(i)],['mag',num2str(i)],...
+             ['smvAcc',num2str(i)],['smvGyr',num2str(i)],['smvMag',num2str(i)],...
+             'labels'};
 end
 
-%% do I need to get each window?
+sf = innerjoin(s{1},s{2});
 
-idxLabels = find(diff(preWindowed{1}.labels)~=0)+1;%find when labels change
+%s = [s{:,1},s{:,2},s{:,3}];
 
-% numTabs = numel(preWindowed);%number of tables
-% windowed = cell(length(idxLabels),numTabs);%number of windows 
-%                                            %(should be number of labels)
-% 
-% for tab = 1:numTabs %for each table
-%     windowed{1,tab} = preWindowed{tab}(1:idxLabels(1)-1,:);%table_n, from a to b give label y
-%     for k = 1:length(idxLabels)%number of label changes
-% 
-%         w = k+1;
-% 
-%             if k == length(idxLabels) %I have to assign the last one manually cause idx is out of bound for labs
-%             windowed{w,tab} =  preWindowed{tab}(idxLabels(k):height(preWindowed{tab}),:);
-%             else, windowed{w,tab} = preWindowed{tab}(idxLabels(k):idxLabels(w)-1,:);
-%             end
-% 
-%     end
-% end
+%Does the same as:
+% C = s1.acc;
+% D = sqrt(C(:,1).^2 + C(:,2).^2 + C(:,3).^2);
+clearvars -except s subjectName defpath
 
-%% Detrend each window AND calculate SMV = sqrt(ax^2,ay^2,az^2)
+%% Save data
 
-numTabs = numel(preWindowed);%number of tables
-detr = cell(1,numTabs);
-
-acc = [];gyr = [];mag = [];
-smvAcc = [];smvGyr = [];smvMag =[];
-
-for tab = 1:numTabs
-    accD = detrend(preWindowed{tab}.acc,'linear',idxLabels);   
-    gyrD = detrend(preWindowed{tab}.gyr,'linear',idxLabels);
-    magD = detrend(preWindowed{tab}.mag,'linear',idxLabels);
-    smvAccD = sqrt(accD(:,1).^2 +accD(:,2).^2 +accD(:,3).^2);
-    smvGyrD = sqrt(gyrD(:,1).^2 +gyrD(:,2).^2 +gyrD(:,3).^2);
-    smvMagD = sqrt(magD(:,1).^2 +magD(:,2).^2 +magD(:,3).^2); 
-    
-    acc = [acc,accD];gyr = [gyr,gyrD];mag = [mag,magD];
-    smvAcc = [smvAcc,smvAccD];smvGyr = [smvGyr,smvGyrD];smvMagD = [smvMag,smvMagD];
-
-    
-
-end
-
-
-labels = preWindowed{1}.labels;
-
-dataImu = [acc,gyr,mag,smvAcc,smvGyr,smvMag,labels];
+%dataImu = [acc,gyr,mag,smvAcc,smvGyr,smvMag,labels];
 name = [subjectName,'DataIMUPrepro'];
 
 yourFolder = [defpath,'/Step2_Preprocessed_Data'];
@@ -176,19 +133,3 @@ filename = [name,'.mat'];
 disp(['File name: ',filename])
 save([yourFolder,'/',filename],'dataImu')  % function form
 disp(['Look in: ',yourFolder, '/ folder for your preprocessed data'])
-
-
-%% if I wanna normalize here instead of in Main_IMU
-% for tab = 1:numTabs
-%     acc = normalize(detrend(preWindowed{tab}.acc,'linear',idxLabels),1);
-%     gyr = normalize(detrend(preWindowed{tab}.gyr,'linear',idxLabels),1);
-%     mag = normalize(detrend(preWindowed{tab}.mag,'linear',idxLabels),1);
-%     
-%     cleanImu{:,tab} = table(acc,gyr,mag,preWindowed{tab}.labels);
-% end
-
-
-
-
-
-
