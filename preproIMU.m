@@ -82,14 +82,21 @@ end
 %Labels are the same in all sensors.
 %Find the indices in s1 and and I can use them with the rest
 
-idx = s1.status ==2;
-s1 = s1(idx,:);s1.t = [];s1.q = [];s1.status = [];%get rid of time, quaternions and status
-s2 = s2(idx,:);s2.t = [];s2.q = [];s2.status = [];%get rid of time, quaternions and status
-s3 = s3(idx,:);s3.t = [];s3.q = [];s3.status = [];%get rid of time, quaternions and status
+
+
+idx = s1.status ==2;%get indices where status is 2
+labels = s1(idx,end-1);
+s1 = s1(idx,:);
+s2 = s2(idx,:);
+s3 = s3(idx,:);
+
+s1(:,{'t','q','status','labels'})=[];%these variables are not usefull anymore
+s2(:,{'t','q','status','labels'})=[];
+s3(:,{'t','q','status','labels'})=[];
 
 s = {s1,s2,s3};
 
-clearvars -except s subjectName defpath
+clearvars -except s subjectName defpath labels
 
 %% Calculate SMV of acc, gyr and mag (sqrt(ax^2+ay^2+az^2))
 
@@ -102,21 +109,16 @@ for i = 1:numel(s)
     s{i}.smvMag = smv{:,3};
     
     %reorder table
-    s{i}= [s{i}(:,2),s{i}(:,1),s{i}(:,3), s{i}(:,5:7), s{i}(:,4)];
+    s{i}= [s{i}(:,2),s{i}(:,1),s{i}(:,3), s{i}(:,4:6)];
     s{i}.Properties.VariableNames = ...
             {['acc',num2str(i)],['gyr',num2str(i)],['mag',num2str(i)],...
-             ['smvAcc',num2str(i)],['smvGyr',num2str(i)],['smvMag',num2str(i)],...
-             'labels'};
+             ['smvAcc',num2str(i)],['smvGyr',num2str(i)],['smvMag',num2str(i)]};
 end
 
-sf = innerjoin(s{1},s{2});
+%create final table
+dataIMULabeled = [s{:,1},s{:,2},s{:,3},labels];
 
-%s = [s{:,1},s{:,2},s{:,3}];
-
-%Does the same as:
-% C = s1.acc;
-% D = sqrt(C(:,1).^2 + C(:,2).^2 + C(:,3).^2);
-clearvars -except s subjectName defpath
+clearvars -except dataIMULabeled subjectName defpath
 
 %% Save data
 
@@ -131,5 +133,5 @@ end
 disp(['Saving preprocessed data in: ',yourFolder,'/'])
 filename = [name,'.mat'];
 disp(['File name: ',filename])
-save([yourFolder,'/',filename],'dataImu')  % function form
-disp(['Look in: ',yourFolder, '/ folder for your preprocessed data'])
+save([yourFolder,'/',filename],'dataIMULabeled')  % function form
+disp(['Look in: ',yourFolder, 'folder for your preprocessed data'])
