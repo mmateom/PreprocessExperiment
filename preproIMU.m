@@ -11,7 +11,7 @@ clc;
 
 %% SUBJECT NAME
 
-%subjectName = 'Luis';
+%subjectName = 'LuisPRUEBA';
 
 %% Load files
 
@@ -57,9 +57,9 @@ f = (0:NFFT/2)/NFFT*fs;
 %% High pass at 10 Hz
 
 lfc = 10;
-nhfc = 2*Ts*lfc; %normalized cutoff freq.: nfc = fc/fnyq; fnyq = 1/2*fs=2*Ts
+nlfc = 2*Ts*lfc; %normalized cutoff freq.: nfc = fc/fnyq; fnyq = 1/2*fs=2*Ts
 
-[b,a]=butter(2,nhfc,'low'); 
+[b,a]=butter(2,nlfc,'low'); 
 y=filtfilt(b,a,x);
 
 
@@ -77,6 +77,22 @@ figure(2);plot(f,c_f);title('before filter freq')
 figure(3);plot(y);title('after filter time')
 figure(4);plot(f2,c_f2);title('after filter freq')
 end
+%% Filter data
+
+sRaw = {s1,s2,s3};
+sFilt = sRaw;%initialize sFilt
+
+lfc = 10;%Hz
+nlfc = 2*Ts*lfc; %normalized cutoff freq.: nfc = fc/fnyq; fnyq = 1/2*fs=2*Ts
+[b,a]=butter(2,nlfc,'low'); 
+
+vars = {'acc','gyr','mag'};
+for k = 1:numel(sRaw)%for each sensors    
+    for v = 1:numel(vars)%for each variable
+       sFilt{k}{:,vars} = filtfilt(b,a,sRaw{k}{:,vars});
+    end   
+end
+
 %% Get activity windows
 
 % LABELS:
@@ -90,17 +106,17 @@ end
 %Labels are the same in all sensors.
 %Find the indices in s1 and and I can use them with the rest
 
-idx = s1.status ==2;%get indices where status is 2
-labels = s1(idx,end-1);
-s1 = s1(idx,:);
-s2 = s2(idx,:);
-s3 = s3(idx,:);
+s = sFilt;%initialize with same structure as sFilt
 
-s1(:,{'t','q','status','labels'})=[];%these variables are not usefull anymore
-s2(:,{'t','q','status','labels'})=[];
-s3(:,{'t','q','status','labels'})=[];
+idx = sFilt{:,1}.status ==2;%get indices where status is 2. sFilt{:,1} = sensor1
+labels = sFilt{:,1}(idx,end-1);
 
-s = {s1,s2,s3};
+for sf = 1:numel(sFilt)
+    s{:,sf} = sFilt{:,sf}(idx,:);%take samples where status is 2
+    s{:,sf}(:,{'t','q','status','labels'})=[];%these variables are not usefull anymore
+end
+
+%s will be a cell with: 1 x number of sensors
 
 clearvars -except s subjectName defpath labels
 
