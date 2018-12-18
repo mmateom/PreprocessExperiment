@@ -94,7 +94,7 @@ try
         
         %% Adjusting the data from the EMG Machine (bits to Volt)
         fprintf('Scaling the data...\n');        
-        auxData(:,8:end) = auxData(:,8:end) * 5 /(2^12 * 500);
+        auxData(:,10:end) = auxData(:,10:end) * 5 /(2^12 * 500);
         
         %% Creating the main file
         D.Data = auxData;

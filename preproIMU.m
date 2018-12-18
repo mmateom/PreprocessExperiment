@@ -1,5 +1,5 @@
 %% IMU prepro
-function [] = preproIMU(defpath,subjectName)
+%function [] = preproIMU(defpath,subjectName)
 clearvars -except defpath subjectName
 clc;
 
@@ -15,15 +15,15 @@ clc;
 
 %% Load files
 
-% defpath = '/Users/mikel/Desktop/Data from GOOD experiments_1/Sync';
-% [FileName,PathName,~] = uigetfile(fullfile(defpath,'Step1_SyncedRawData/','*.mat'),'select file');
-% if isequal(FileName,0)
-%     warning('No file selected');
-%     return;
-% end
+defpath = '/Users/mikel/Desktop/NEW EXPERIMENTS';
+[FileName,PathName,~] = uigetfile(fullfile(defpath,'Step1_SyncedRawData/','*.mat'),'select file');
+if isequal(FileName,0)
+    warning('No file selected');
+    return;
+end
 
-PathName = [defpath,'Step1_SyncedRawData/'];
-FileName = [subjectName,'_SyncedData'];
+% PathName = [defpath,'Step1_SyncedRawData/'];
+% FileName = [subjectName,'_SyncedData'];
 data = load(strcat(PathName,FileName));  %Data from all subjects
 
 fs = data.imuData.fs;
@@ -34,6 +34,9 @@ Ts = 1/fs;%length of a sample
 s1 = struct2table(data.imuData.s1);
 s2 = struct2table(data.imuData.s2);
 s3 = struct2table(data.imuData.s3);
+s4 = struct2table(data.imuData.s4);
+s5 = struct2table(data.imuData.s5);
+s6 = struct2table(data.imuData.s6);
 
 analysis = 0;
 
@@ -52,11 +55,11 @@ f = (0:NFFT/2)/NFFT*fs;
 
 %periodogram, just in case
 %[p,fm] = periodogram(x,[],[],fs);
-%figure(99);plot(fm,p);title('before filter freq')
+figure(99);plot(f,c_f);title('before filter freq')
 
-%% High pass at 10 Hz
+%% High pass at 20 Hz
 
-lfc = 10;
+lfc = 20;
 nlfc = 2*Ts*lfc; %normalized cutoff freq.: nfc = fc/fnyq; fnyq = 1/2*fs=2*Ts
 
 [b,a]=butter(2,nlfc,'low'); 
@@ -79,10 +82,10 @@ figure(4);plot(f2,c_f2);title('after filter freq')
 end
 %% Filter data
 
-sRaw = {s1,s2,s3};
+sRaw = {s1,s2,s3,s4,s5,s6};
 sFilt = sRaw;%initialize sFilt
 
-lfc = 10;%Hz
+lfc = 20;%Hz
 nlfc = 2*Ts*lfc; %normalized cutoff freq.: nfc = fc/fnyq; fnyq = 1/2*fs=2*Ts
 [b,a]=butter(2,nlfc,'low'); 
 
@@ -95,7 +98,7 @@ end
 
 %% Get activity windows
 
-% LABELS:
+% STATUS LABELS:
 %     0: null--> between activities
 %     1: grey
 %     2: GREEN
