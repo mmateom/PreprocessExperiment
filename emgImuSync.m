@@ -88,6 +88,7 @@ ylabel('diff between samples in Miliseconds')
 
 fs_resamp = 100; %new sampling frequency
 factor = 1.0006;%drift factor
+%factor = 0.99977;%drift factor
 t = t1*factor;
 dt = 1000*(1/fs_resamp);%milisecs*(1/fs_resamp)
 
@@ -100,45 +101,123 @@ t_emg = (0:length(emg)-1) / fs_emg /60; % Minutes
 
 %% Get synchronization spikes from EMG and IMU - VISUALLY
 if ~loadPeaks %if I don't already have them, let me pick them
-    figure(1);title('IMU Sensor 1 acceleration: START');
-    plot(t_imu,imu_1(:,1))
+    figure(1);
+    plot(t_imu,imu_1(:,3))
+    title('IMU Sensor 1 acceleration: START1')
     zoom on
     waitfor(gcf,'CurrentCharacter', char(13))
     zoom reset
     zoom off
-    [pksStartImu,~] = ginput(3);%3 spikes for start 
+    [pksStartImu1,~] = ginput(1);%3 spikes for start 
+    figure(2);
+    plot(t_imu,imu_1(:,3))
+    title('IMU Sensor 1 acceleration: START2')
+    zoom on
+    waitfor(gcf,'CurrentCharacter', char(13))
+    zoom reset
+    zoom off
+    [pksStartImu2,~] = ginput(1);%3 spikes for start
+    figure(3);
+    plot(t_imu,imu_1(:,3))
+    title('IMU Sensor 1 acceleration: START3')
+    zoom on
+    waitfor(gcf,'CurrentCharacter', char(13))
+    zoom reset
+    zoom off
+    [pksStartImu3,~] = ginput(1);%3 spikes for start
     if stopPks
-        figure(2);title('IMU Sensor 1 acceleration: STOP');
-        plot(t_imu,imu_1(:,1))
+        figure(4);
+        plot(t_imu,imu_1(:,3))
+        title('IMU Sensor 1 acceleration: STOP1')
         zoom on
         waitfor(gcf,'CurrentCharacter', char(13))
         zoom reset
         zoom off
-        [pksStopImu,~] = ginput(3);%3 spikes for stop 
+        [pksStopImu1,~] = ginput(1);%3 spikes for stop 
+                figure(5);
+        plot(t_imu,imu_1(:,3))
+        title('IMU Sensor 1 acceleration: STOP2')
+        zoom on
+        waitfor(gcf,'CurrentCharacter', char(13))
+        zoom reset
+        zoom off
+        [pksStopImu2,~] = ginput(1);%3 spikes for stop
+                figure(6);
+        plot(t_imu,imu_1(:,3))
+        title('IMU Sensor 1 acceleration: STOP3')
+        zoom on
+        waitfor(gcf,'CurrentCharacter', char(13))
+        zoom reset
+        zoom off
+        [pksStopImu3,~] = ginput(1);%3 spikes for stop
     end
-    figure(3);title('EMG channel 1: START');
+    figure(7);
     plot(t_emg,emg(:,10));%take channel 1 from EMG
+    title('EMG channel 1: START1')
     xlim([0 t_emg(end)])
     zoom on
     waitfor(gcf,'CurrentCharacter', char(13))
     zoom reset
     zoom off
-    [pksStartEmg,~] = ginput(3);
+    [pksStartEmg1,~] = ginput(1);
+        figure(8);
+    plot(t_emg,emg(:,10));%take channel 1 from EMG
+    title('EMG channel 1: START2')
+    xlim([0 t_emg(end)])
+    zoom on
+    waitfor(gcf,'CurrentCharacter', char(13))
+    zoom reset
+    zoom off
+    [pksStartEmg2,~] = ginput(1);
+        figure(9);
+    plot(t_emg,emg(:,10));%take channel 1 from EMG
+    title('EMG channel 1: START3');
+    xlim([0 t_emg(end)])
+    zoom on
+    waitfor(gcf,'CurrentCharacter', char(13))
+    zoom reset
+    zoom off
+    [pksStartEmg3,~] = ginput(1);
     if stopPks 
-    figure(4);title('EMG channel 1: STOP');
+    figure(10);
     plot(t_emg,emg(:,10));%take channel 1 from EMG
+    title('EMG channel 1: STOP1')
     xlim([0 t_emg(end)])
     zoom on
     waitfor(gcf,'CurrentCharacter', char(13))
     zoom reset
     zoom off
-    [pksStopEmg,~] = ginput(3);
+    [pksStopEmg1,~] = ginput(1);
+        figure(11);
+    plot(t_emg,emg(:,10));%take channel 1 from EMG
+    title('EMG channel 1: STOP2')
+    xlim([0 t_emg(end)])
+    zoom on
+    waitfor(gcf,'CurrentCharacter', char(13))
+    zoom reset
+    zoom off
+    [pksStopEmg2,~] = ginput(1);
+        figure(12);
+    plot(t_emg,emg(:,10));%take channel 1 from EMG
+    title('EMG channel 1: STOP3')
+    xlim([0 t_emg(end)])
+    zoom on
+    waitfor(gcf,'CurrentCharacter', char(13))
+    zoom reset
+    zoom off
+    [pksStopEmg3,~] = ginput(1);
+    
     end
     %save the points
     yourFolder = [defpath,'/SyncPeaks'];
     if ~exist(yourFolder, 'dir')
        mkdir(yourFolder)
     end
+
+pksStartImu = [pksStartImu1,pksStartImu2,pksStartImu3];  
+pksStopImu = [pksStopImu1,pksStopImu2,pksStopImu3];
+pksStartEmg = [pksStartEmg1,pksStartEmg2,pksStartEmg3];
+pksStopEmg = [pksStopEmg1,pksStopEmg2,pksStopEmg3];
 
     disp(['Saving synchro peaks in: ',yourFolder,'/'])
     filename = [subjectName,'_syncPks.mat'];
@@ -173,6 +252,9 @@ if stopPks
 meanStopEmg = mean(pksStopEmg);
 meanStopImu = mean(pksStopImu);
 end
+%check if EMG and IMU match
+meanStopImu-meanStartImu
+meanStopEmg-meanStartEmg
 %% Find the index of the mean values
 %find nearest value of meanInd in time vector and get the index
 %emg(:,end) has the time vector
@@ -186,6 +268,11 @@ if stopPks
 [difSpemg, stopIdxEmg]  = min(abs(emg(:,end)-meanStopEmg));
 [difSpimu, stopIdxImu]  = min(abs(imu_1(:,4)-meanStopImu));
 end
+%%
+
+
+
+
 %% Crop from the start index till stop index
 if stopPks
  
@@ -209,6 +296,11 @@ t_emg = emg(:,end);
 figure(5);suptitle('Cropped signals. Displaying imu 1 and emg channel 1') 
 subplot(2,1,1);plot(t_imu,imu_1(:,1:3))
 subplot(2,1,2);plot(t_emg,emg(:,10))%channel 1
+pause(4)
+%% True synchroniced EMG and IMU
+figure(6);suptitle('Cropped signals. Displaying imu 1 and emg channel 1') 
+subplot(2,1,1);plot(t_imu-t_imu(1),imu_1(:,1:3))
+subplot(2,1,2);plot(t_emg-t_emg(1),emg(:,10))%channel 1
 pause(4)
 %close all
 %% IMU Labeling (I): Labels
@@ -262,13 +354,24 @@ statusEmg(idx39(1):last39) = 0;%assign status 0 to the repetition
 end
 
 %% Mark not valid repetitions in running, if any
-
+%luigi
 idx40 = find(labelsEmg == 40);
 if any(diff(idx40)>1) %if there's a big jump in idx, means jumping is labeled twice, which means there's a repetition
 idxRep = find(diff(idx40)>1)+1;%index in the array of diff. Plus one becase the big change is the next idx
 last40 = idx40(idxRep)-1;%take the value of the idx where the big gap ends
 statusEmg(idx40(1):last40) = 0;%assign status 0 to the repetition
 end
+
+%% Mark not valid repetitions in JUMPING, if any
+
+idx50 = find(labelsEmg == 50);
+if any(diff(idx50)>1) %if there's a big jump in idx, means jumping is labeled twice, which means there's a repetition
+idxRep = find(diff(idx50)>1)+1;%index in the array of diff. Plus one becase the big change is the next idx
+last50 = idx50(idxRep)-1;%take the value of the idx where the big gap ends
+statusEmg(idx50(1):last50) = 0;%assign status 0 to the repetition
+end
+
+
 
 %% Reasign jumping
 
@@ -289,6 +392,7 @@ restLabs = (labelsEmg(idx51(1):idx59(end)))-8;
 labelsEmg(idx51(1):idx59(end)) = restLabs;
 
 %% Mark not valid repetitions in cycling, if any
+%luigi
 idx41start = idx40(end)+1;
 idx42 = find(labelsEmg == 42);
 if any(diff(idx42)>1) %if there's a big jump in idx, means jumping is labeled twice, which means there's a repetition
@@ -298,7 +402,7 @@ statusEmg(idx41start:last42) = 0;%assign status 0 to the repetition
 end
 
 %% Mark not valid repetitions in walking, if any
-
+%luigi,andrea,luis
 idx43 = find(labelsEmg == 43);
 if any(diff(idx43)>1) %if there's a big jump in idx, means jumping is labeled twice, which means there's a repetition
 idxRep = find(diff(idx43)>1)+1;%index in the array of diff. Plus one becase the big change is the next idx
@@ -384,6 +488,11 @@ for k = 1:length(sindices)
 
 end
   
+%% Check labelled IMUs correspong to EMG labelling
+
+figure;plot(labelsImu)
+hold on
+plot(statusImu*10)
 
 %% Synchronice the rest of the imus 
 
@@ -418,7 +527,7 @@ for s = 1:numel(mon)%number of sensors
     imuDataSync.(mon{s}).t      = t_imu;
     imuDataSync.(mon{s}).labels = labelsImu;
     imuDataSync.(mon{s}).status = statusImu;
-    imuDataSync.fs = fs_imu;
+    imuDataSync.fs = 100;
 end
 %%
 %new struct for emg data
@@ -442,7 +551,8 @@ end
 disp(['Saving synced, raw data in: ',yourFolder])
 filename = [subjectName,'_SyncedData.mat'];
 disp(['File name: ',filename])
+disp('Still saving...')
 save([yourFolder,'/',filename],'imuDataSync','emgData')  % function form
-disp(['Look in: ',yourFolder, 'folder for your synced, raw data'])
+disp(['Saved. Look in: ',yourFolder, 'folder for your synced, raw data'])
 
 
