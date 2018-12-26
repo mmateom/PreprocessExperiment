@@ -1,4 +1,4 @@
-function mot = readSatData(filename, mon,limit,id)
+function mot = readSatData2(filename, mon,limit,id)
 % currently reading data from a specific imu log file
 
 

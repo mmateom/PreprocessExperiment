@@ -14,13 +14,21 @@
 %% Load EMG and IMU data (must be in same folder)
 
 %-----COMMENT this to use as a function of 'data2struct.m'---------
-clear;clc;
+clear;clc;close all;
 defpath = '/Users/mikel/Desktop/NEW EXPERIMENTS/';
-subjectName = 'Andrea';
-loadPeaks = 0;%do you already have the sync points? Put 1.
-stopPks = 1; %if your data has a syncro in the end too, put 1
-
+subjectName = 'Debora';
+loadPeaks = 1;%do you already have the sync points? Put 1.
 %------------------------------------------------------------------
+
+%I forget to tap in the end in some cases so say which case needs stopPks
+switch subjectName
+    case 'Miguel';stopPks = 0;
+    case 'Luis' ;stopPks = 0;
+    case 'Constantina' ;stopPks = 0;
+    otherwise, stopPks = 1;
+end
+
+%------
 
 disp('Select the folder with your data in the dialogue')
 disp('Must have one .txt(imu) and one .mat(emg)')
@@ -31,6 +39,7 @@ if isequal(mypath,0)%check if path is correct
     warning('No folder selected');
     return;
 end
+
 
 f = [dir(fullfile(mypath,'*mat')); dir(fullfile(mypath,'*txt'))];
 
@@ -55,6 +64,7 @@ for k = 1:length(f)
 end
 
 disp('Loaded')
+
 %%
 clearvars -except imuData emgData mon subjectName mypath defpath loadPeaks stopPks
 
@@ -67,7 +77,7 @@ format long g %get rid of scientific notation
 fs_imu = 100; %check this in SampFreqSubjects.txt
 fs_emg = emgData.D.SamplingRate;%usually 2048 Hz
 
-%% Load data matrices needed for synchro
+%%Load data matrices needed for synchro
 
 imuRaw = imuData.(mon{1}).acc';%need only first IMU: Right-Wrist for synchro
 t1  = imuData.(mon{1}).t;%need only first IMU: Right-Wrist
@@ -87,7 +97,7 @@ ylabel('diff between samples in Miliseconds')
 %IMU: We can interpolate to get a better time vector taking into account drift factor
 
 fs_resamp = 100; %new sampling frequency
-factor = 1.0006;%drift factor
+factor = 1.00058;%drift factor
 %factor = 0.99977;%drift factor
 t = t1*factor;
 dt = 1000*(1/fs_resamp);%milisecs*(1/fs_resamp)
@@ -117,6 +127,7 @@ if ~loadPeaks %if I don't already have them, let me pick them
     zoom reset
     zoom off
     [pksStartImu2,~] = ginput(1);%3 spikes for start
+    if ~strcmp(subjectName,'Valerio')
     figure(3);
     plot(t_imu,imu_1(:,3))
     title('IMU Sensor 1 acceleration: START3')
@@ -125,6 +136,7 @@ if ~loadPeaks %if I don't already have them, let me pick them
     zoom reset
     zoom off
     [pksStartImu3,~] = ginput(1);%3 spikes for start
+    end
     if stopPks
         figure(4);
         plot(t_imu,imu_1(:,3))
@@ -142,7 +154,8 @@ if ~loadPeaks %if I don't already have them, let me pick them
         zoom reset
         zoom off
         [pksStopImu2,~] = ginput(1);%3 spikes for stop
-                figure(6);
+        if ~strcmp(subjectName,'Valerio')
+        figure(6);
         plot(t_imu,imu_1(:,3))
         title('IMU Sensor 1 acceleration: STOP3')
         zoom on
@@ -150,6 +163,7 @@ if ~loadPeaks %if I don't already have them, let me pick them
         zoom reset
         zoom off
         [pksStopImu3,~] = ginput(1);%3 spikes for stop
+        end
     end
     figure(7);
     plot(t_emg,emg(:,10));%take channel 1 from EMG
@@ -169,7 +183,8 @@ if ~loadPeaks %if I don't already have them, let me pick them
     zoom reset
     zoom off
     [pksStartEmg2,~] = ginput(1);
-        figure(9);
+    if ~strcmp(subjectName,'Valerio')
+    figure(9);
     plot(t_emg,emg(:,10));%take channel 1 from EMG
     title('EMG channel 1: START3');
     xlim([0 t_emg(end)])
@@ -178,6 +193,7 @@ if ~loadPeaks %if I don't already have them, let me pick them
     zoom reset
     zoom off
     [pksStartEmg3,~] = ginput(1);
+    end
     if stopPks 
     figure(10);
     plot(t_emg,emg(:,10));%take channel 1 from EMG
@@ -197,7 +213,8 @@ if ~loadPeaks %if I don't already have them, let me pick them
     zoom reset
     zoom off
     [pksStopEmg2,~] = ginput(1);
-        figure(12);
+    if ~strcmp(subjectName,'Valerio')
+    figure(12);
     plot(t_emg,emg(:,10));%take channel 1 from EMG
     title('EMG channel 1: STOP3')
     xlim([0 t_emg(end)])
@@ -206,6 +223,7 @@ if ~loadPeaks %if I don't already have them, let me pick them
     zoom reset
     zoom off
     [pksStopEmg3,~] = ginput(1);
+    end
     
     end
     %save the points
@@ -214,10 +232,20 @@ if ~loadPeaks %if I don't already have them, let me pick them
        mkdir(yourFolder)
     end
 
+if ~strcmp(subjectName,'Valerio')
 pksStartImu = [pksStartImu1,pksStartImu2,pksStartImu3];  
-pksStopImu = [pksStopImu1,pksStopImu2,pksStopImu3];
 pksStartEmg = [pksStartEmg1,pksStartEmg2,pksStartEmg3];
+else
+pksStartImu = [pksStartImu1,pksStartImu2];  
+pksStartEmg = [pksStartEmg1,pksStartEmg2];
+end
+if stopPks && ~strcmp(subjectName,'Valerio')%Valerio takes only 2 points
+pksStopImu = [pksStopImu1,pksStopImu2,pksStopImu3];
 pksStopEmg = [pksStopEmg1,pksStopEmg2,pksStopEmg3];
+else
+    pksStopImu = [pksStopImu1,pksStopImu2];
+    pksStopEmg = [pksStopEmg1,pksStopEmg2];
+end
 
     disp(['Saving synchro peaks in: ',yourFolder,'/'])
     filename = [subjectName,'_syncPks.mat'];
@@ -253,8 +281,15 @@ meanStopEmg = mean(pksStopEmg);
 meanStopImu = mean(pksStopImu);
 end
 %check if EMG and IMU match
-meanStopImu-meanStartImu
-meanStopEmg-meanStartEmg
+if stopPks
+mImu = meanStopImu-meanStartImu
+mEmg = meanStopEmg-meanStartEmg
+(mImu-mEmg)*60%difference in seconds
+else
+    im4 = imu_1(:,4);
+    im4(end)-meanStartImu
+    c1 = emg(:,end);c1(end)-meanStartEmg
+end
 %% Find the index of the mean values
 %find nearest value of meanInd in time vector and get the index
 %emg(:,end) has the time vector
@@ -268,9 +303,6 @@ if stopPks
 [difSpemg, stopIdxEmg]  = min(abs(emg(:,end)-meanStopEmg));
 [difSpimu, stopIdxImu]  = min(abs(imu_1(:,4)-meanStopImu));
 end
-%%
-
-
 
 
 %% Crop from the start index till stop index
@@ -289,27 +321,35 @@ end
 labelsImu = nan(length(imu_1),1);%create labels column in imus;
 statusImu = nan(length(imu_1),1);
 t_imu = imu_1(:,end);
+t_imu = t_imu-t_imu(1);%to cero
 imu_1 = [imu_1(:,1:3),labelsImu,statusImu,t_imu];%**********
 t_emg = emg(:,end);
+t_emg = t_emg-t_emg(1);%to cero
 
 %%
-figure(5);suptitle('Cropped signals. Displaying imu 1 and emg channel 1') 
-subplot(2,1,1);plot(t_imu,imu_1(:,1:3))
-subplot(2,1,2);plot(t_emg,emg(:,10))%channel 1
-pause(4)
+% figure(5);suptitle('Cropped signals. Displaying imu 1 and emg channel 1') 
+% subplot(2,1,1);plot(t_imu,imu_1(:,1:3))
+% subplot(2,1,2);plot(t_emg,emg(:,10))%channel 1
+% pause(4)
 %% True synchroniced EMG and IMU
 figure(6);suptitle('Cropped signals. Displaying imu 1 and emg channel 1') 
-subplot(2,1,1);plot(t_imu-t_imu(1),imu_1(:,1:3))
-subplot(2,1,2);plot(t_emg-t_emg(1),emg(:,10))%channel 1
-pause(4)
+subplot(2,1,1);plot(t_imu,imu_1(:,1:3))
+subplot(2,1,2);plot(t_emg,emg(:,10))%channel 1
+
 %close all
 %% IMU Labeling (I): Labels
 
 labelsEmg = emg(:,7);%labels.
 statusEmg = emg(:,9);%status
 
+%% Check transitions 
 
-
+df = (diff(labelsEmg)~=0)*100;
+df2 = [df',0];
+figure;
+plot(t_emg,labelsEmg)
+hold on
+plot(t_emg,statusEmg*10)
 
 %% Reasign labels for activities 20 and 21 (socks and tie shoes)
 reps = [20,25];
@@ -343,8 +383,19 @@ statusEmg(idx30(1):last30) = 0;%assign status 0 to the repetition
 end
 end
 
-%% washing hands rep
+%% scrub windows
+if strcmp(subjectName,'Valerio')
+idx31 = find(labelsEmg == 31);
+if any(diff(idx31)>1) %if there's a big jump in idx, means jumping is labeled twice, which means there's a repetition
+idxRep = find(diff(idx31)>1)+1;%index in the array of diff. Plus one becase the big change is the next idx
+last31 = idx31(idxRep)-1;%take the value of the idx where the big gap ends. Minus one becase is where the last label ends
+                        %not where the 39 begins
+statusEmg(idx31(1):last31) = 0;%assign status 0 to the repetition
+end
+end
 
+%% washing hands rep
+if strcmp(subjectName,'Luis')
 idx39 = find(labelsEmg == 39);
 if any(diff(idx39)>1) %if there's a big jump in idx, means jumping is labeled twice, which means there's a repetition
 idxRep = find(diff(idx39)>1)+1;%index in the array of diff. Plus one becase the big change is the next idx
@@ -352,26 +403,27 @@ last39 = idx39(idxRep)-1;%take the value of the idx where the big gap ends. Minu
                         %not where the 39 begins
 statusEmg(idx39(1):last39) = 0;%assign status 0 to the repetition
 end
+end
 
 %% Mark not valid repetitions in running, if any
-%luigi
+if strcmp(subjectName,'Luigi')||strcmp(subjectName,'Michelangelo')
 idx40 = find(labelsEmg == 40);
 if any(diff(idx40)>1) %if there's a big jump in idx, means jumping is labeled twice, which means there's a repetition
 idxRep = find(diff(idx40)>1)+1;%index in the array of diff. Plus one becase the big change is the next idx
 last40 = idx40(idxRep)-1;%take the value of the idx where the big gap ends
 statusEmg(idx40(1):last40) = 0;%assign status 0 to the repetition
 end
+end
 
 %% Mark not valid repetitions in JUMPING, if any
-
+if strcmp(subjectName,'Mikel')
 idx50 = find(labelsEmg == 50);
 if any(diff(idx50)>1) %if there's a big jump in idx, means jumping is labeled twice, which means there's a repetition
 idxRep = find(diff(idx50)>1)+1;%index in the array of diff. Plus one becase the big change is the next idx
 last50 = idx50(idxRep)-1;%take the value of the idx where the big gap ends
 statusEmg(idx50(1):last50) = 0;%assign status 0 to the repetition
 end
-
-
+end
 
 %% Reasign jumping
 
@@ -392,7 +444,7 @@ restLabs = (labelsEmg(idx51(1):idx59(end)))-8;
 labelsEmg(idx51(1):idx59(end)) = restLabs;
 
 %% Mark not valid repetitions in cycling, if any
-%luigi
+if strcmp(subjectName,'Luigi')
 idx41start = idx40(end)+1;
 idx42 = find(labelsEmg == 42);
 if any(diff(idx42)>1) %if there's a big jump in idx, means jumping is labeled twice, which means there's a repetition
@@ -400,14 +452,16 @@ idxRep = find(diff(idx42)>1);%index in the array of diff.
 last42 = idx42(idxRep);%take the value of the idx where the big gap ends.NOT MINUS ONE.
 statusEmg(idx41start:last42) = 0;%assign status 0 to the repetition
 end
+end
 
 %% Mark not valid repetitions in walking, if any
-%luigi,andrea,luis
+if strcmp(subjectName,'Luis')||strcmp(subjectName,'Andrea')||strcmp(subjectName,'Luigi')%luigi,andrea,luis
 idx43 = find(labelsEmg == 43);
 if any(diff(idx43)>1) %if there's a big jump in idx, means jumping is labeled twice, which means there's a repetition
 idxRep = find(diff(idx43)>1)+1;%index in the array of diff. Plus one becase the big change is the next idx
 last43 = idx43(idxRep)-1;%take the value of the idx where the big gap ends
 statusEmg(idx43(1):last43) = 0;%assign status 0 to the repetition
+end
 end
 
 %% find the indeces where the difference between labels is not zero
@@ -425,7 +479,7 @@ plot(t_emg,statusEmg*10)
 %plot(t_emg,df2);
 % pause(4)
 % line([emgTrans.' emgTrans.'],[0 100],'Color',[0 0 0])%black
-%%
+%% IMU Labeling (I): Labels
 
 Nmat = repmat(t_imu,[1 numel(emgTrans)]);%create a matrix to compare
 [minval,indices] = min(abs(Nmat-emgTrans),[],1);%indices from imu.
@@ -493,6 +547,7 @@ end
 figure;plot(labelsImu)
 hold on
 plot(statusImu*10)
+title('Sudden jump to 51 means data is missing')
 
 %% Synchronice the rest of the imus 
 
@@ -530,9 +585,15 @@ for s = 1:numel(mon)%number of sensors
     imuDataSync.fs = 100;
 end
 %%
+figure(6);suptitle('Cropped signals. Displaying imu 1 and emg channel 1') 
+subplot(2,1,1);plot(t_imu,mag2(:,1))
+subplot(2,1,2);plot(t_emg,emg(:,10))%channel 1
+
+
+%% Save
 %new struct for emg data
 emgData.data = [emg(:,1:6),labelsEmg,emg(:,8),statusEmg,emg(:,end-1)];
-emgData.t = emg(:,end);
+emgData.t = t_emg;
 emgData.fs = fs_emg;
 
 %clearvars -except imuData emgData subjectName defpath
