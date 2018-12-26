@@ -18,8 +18,8 @@
 %% 
 clear;clc;
 
-subjectName = {'LuisPRUEBA',...
-                'PENEGORDO'};
+subjectName = {'JohnDoe',...
+    };
            
 numSubs = numel(subjectName);           
 defpath = '/Users/mikel/Desktop/Data from GOOD experiments_1/';
