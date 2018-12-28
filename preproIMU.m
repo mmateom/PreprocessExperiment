@@ -1,7 +1,15 @@
 %% IMU prepro
-%function [] = preproIMU(defpath,subjectName)
+function [] = preproIMU(defpath,subjectName)
 clearvars -except defpath subjectName
 clc;
+
+%preproIMU: 
+%   -low pass filters all acc, gyr and mag at 20 Hz. NOTE: if you want to 
+%   see the result of the filtering to change the cutting freq to your preference,
+%   you should anable the variable 'analysis' to '1'. If not, just set '0'.
+%   -eliminates unusefull data and gets only the instances where the
+%   activity was being performed.
+%   -calculates smv of all acc, gyr and mag
 
 % by Mikel Mateo - University of Twente - November 2018 
 % for The BioRobotics Institute - Scuola Superiore Sant'Anna 
@@ -9,34 +17,34 @@ clc;
 %set(0,'defaultfigurewindowstyle','docked');
 %see: 60_PreproAllIMUDATA.pdf
 
-%% SUBJECT NAME
-
-%subjectName = 'LuisPRUEBA';
-
 %% Load files
 
-defpath = '/Users/mikel/Desktop/NEW EXPERIMENTS';
-[FileName,PathName,~] = uigetfile(fullfile(defpath,'Step1_SyncedRawData/','*.mat'),'select file');
-if isequal(FileName,0)
-    warning('No file selected');
-    return;
-end
+%--------------COMMENT THIS SECTION WHEN USING WITH Main_PreproIMU.m-------
+% subjectName = 'Andrea';
+% defpath = 'D:\OneDrive - Universiteit Twente\2_Internship\All data';
+% 
+% [FileName,PathName,~] = uigetfile(fullfile(defpath,'Step1_SyncedRawData\','*.mat'),'select file');
+% if isequal(FileName,0)
+%     warning('No file selected');
+%     return;
+% end
+%--------------------------------------------------------------------------
 
-% PathName = [defpath,'Step1_SyncedRawData/'];
-% FileName = [subjectName,'_SyncedData'];
+PathName = [defpath,'Step1_SyncedRawData\'];
+FileName = [subjectName,'_SyncedData'];
 data = load(strcat(PathName,FileName));  %Data from all subjects
 
-fs = data.imuData.fs;
+fs = data.imuDataSync.fs;
 Ts = 1/fs;%length of a sample
 
-%% Load all sensors' imu data
+%% Load all sensors' imu data in a table
 
-s1 = struct2table(data.imuData.s1);
-s2 = struct2table(data.imuData.s2);
-s3 = struct2table(data.imuData.s3);
-s4 = struct2table(data.imuData.s4);
-s5 = struct2table(data.imuData.s5);
-s6 = struct2table(data.imuData.s6);
+s1 = struct2table(data.imuDataSync.s1);
+s2 = struct2table(data.imuDataSync.s2);
+s3 = struct2table(data.imuDataSync.s3);
+s4 = struct2table(data.imuDataSync.s4);
+s5 = struct2table(data.imuDataSync.s5);
+s6 = struct2table(data.imuDataSync.s6);
 
 analysis = 0;
 
@@ -99,7 +107,7 @@ end
 %% Get activity windows
 
 % STATUS LABELS:
-%     0: null--> between activities
+%     0: null--> between activities OR NOT VALID ACTIVITIES
 %     1: grey
 %     2: GREEN
 %     3: end of text --> after finishing an activity
@@ -112,10 +120,10 @@ end
 s = sFilt;%initialize with same structure as sFilt
 
 idx = sFilt{:,1}.status ==2;%get indices where status is 2. sFilt{:,1} = sensor1
-labels = sFilt{:,1}(idx,end-1);
+labels = sFilt{:,1}(idx,end-1);%get labels from status idx in last row (where the labels are)
 
-for sf = 1:numel(sFilt)
-    s{:,sf} = sFilt{:,sf}(idx,:);%take samples where status is 2
+for sf = 1:numel(sFilt)%for all sensors
+    s{:,sf} = sFilt{:,sf}(idx,:);%take samples where status is 2, so discard the rest, also invalid reps
     s{:,sf}(:,{'t','q','status','labels'})=[];%these variables are not usefull anymore
 end
 
@@ -150,7 +158,7 @@ clearvars -except dataIMULabeled subjectName defpath
 %dataImu = [acc,gyr,mag,smvAcc,smvGyr,smvMag,labels];
 name = [subjectName,'DataIMUPrepro'];
 
-yourFolder = [defpath,'/Step2_Preprocessed_Data'];
+yourFolder = [defpath,'Step2_Preprocessed_Data'];
 if ~exist(yourFolder, 'dir')
    mkdir(yourFolder)
 end

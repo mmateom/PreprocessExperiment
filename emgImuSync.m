@@ -1,4 +1,4 @@
-%function [] = emgImuSync(defpath,subjectName, loadPeaks)
+function [] = emgImuSync(defpath,subjectName, loadPeaks)
 %% EMG & IMU synchro
 
 %INPUTS:
@@ -13,12 +13,25 @@
 
 %% Load EMG and IMU data (must be in same folder)
 
-%-----COMMENT this to use as a function of 'data2struct.m'---------
-clear;clc;close all;
-defpath = '/Users/mikel/Desktop/NEW EXPERIMENTS/';
-subjectName = 'Debora';
-loadPeaks = 1;%do you already have the sync points? Put 1.
+%-----COMMENT this to use as a function of 'Main_PreproIMU.m'---------
+% clear;clc;close all;
+% defpath = 'D:\OneDrive - Universiteit Twente\2_Internship\All data\Data (ReadyForMatlab)';
+% subjectName = 'Michelangelo';
+% loadPeaks = 1;%do you already have the sync points? Put 1.
+% 
+% disp('Select the folder with your data in the dialogue')
+% disp('Must have one .txt(imu) and one .mat(emg)')
+%pause(1)
+
+%YOU'LL NEED THIS IF YOU WANT TO SELECT FOLDERS MANUALLY 
+%mypath = uigetdir(defpath);%get path
+% if isequal(mypath,0)%check if path is correct
+%     warning('No folder selected');
+%     return;
+% end
 %------------------------------------------------------------------
+
+mypath = [defpath,'\',subjectName];
 
 %I forget to tap in the end in some cases so say which case needs stopPks
 switch subjectName
@@ -29,17 +42,6 @@ switch subjectName
 end
 
 %------
-
-disp('Select the folder with your data in the dialogue')
-disp('Must have one .txt(imu) and one .mat(emg)')
-%pause(1)
-
-mypath = uigetdir(defpath);%get path
-if isequal(mypath,0)%check if path is correct
-    warning('No folder selected');
-    return;
-end
-
 
 f = [dir(fullfile(mypath,'*mat')); dir(fullfile(mypath,'*txt'))];
 
@@ -64,6 +66,12 @@ for k = 1:length(f)
 end
 
 disp('Loaded')
+%% Check emg
+% 
+figure(100)
+subplot(3,1,1);plot(emgData.D.Data(:,7))
+subplot(3,1,2);plot(emgData.D.Data(:,8))
+subplot(3,1,3);plot(emgData.D.Data(:,9))
 
 %%
 clearvars -except imuData emgData mon subjectName mypath defpath loadPeaks stopPks
@@ -227,7 +235,7 @@ if ~loadPeaks %if I don't already have them, let me pick them
     
     end
     %save the points
-    yourFolder = [defpath,'/SyncPeaks'];
+    yourFolder = [defpath,'\SyncPeaks'];
     if ~exist(yourFolder, 'dir')
        mkdir(yourFolder)
     end
@@ -269,8 +277,8 @@ clearvars -except loadPeaks t_imu t_emg emg imu_1 fs_imu fs_emg imuData mon subj
 
 %LOADS THE PEAKS IF STATED ABOVE
 if loadPeaks
-    yourFolder = [defpath,'/SyncPeaks'];
-    load([yourFolder,'/',subjectName,'_syncPks.mat']);
+    yourFolder = [defpath,'\SyncPeaks'];
+    load([yourFolder,'\',subjectName,'_syncPks.mat']);
 end
 %calculate mean of peaks
 meanStartEmg = mean(pksStartEmg);
@@ -350,6 +358,18 @@ figure;
 plot(t_emg,labelsEmg)
 hold on
 plot(t_emg,statusEmg*10)
+
+%% socks rep 1 michelangelo
+
+if strcmp(subjectName,'Michelangelo')
+idx20 = find(labelsEmg == 20);
+if any(diff(idx20)>1) %if there's a big jump in idx, means jumping is labeled twice, which means there's a repetition
+idxRep = find(diff(idx20)>1)+1;%index in the array of diff. Plus one becase the big change is the next idx
+last20 = idx20(idxRep)-1;%take the value of the idx where the big gap ends. Minus one becase is where the last label ends
+                        %not where the 39 begins
+statusEmg(idx20(1):last20) = 0;%assign status 0 to the repetition
+end
+end
 
 %% Reasign labels for activities 20 and 21 (socks and tie shoes)
 reps = [20,25];
@@ -604,7 +624,7 @@ disp('Magic! EMG and IMUs sychronized!')
 %gonna save your data in the subjects folder
 % cd (mypath)
 % cd ../
-yourFolder = [defpath,'/Step1_SyncedRawData'];
+yourFolder = [defpath,'Step1_SyncedRawData'];
 if ~exist(yourFolder, 'dir')
    mkdir(yourFolder)
 end
@@ -613,7 +633,7 @@ disp(['Saving synced, raw data in: ',yourFolder])
 filename = [subjectName,'_SyncedData.mat'];
 disp(['File name: ',filename])
 disp('Still saving...')
-save([yourFolder,'/',filename],'imuDataSync','emgData')  % function form
+save([yourFolder,'\',filename],'imuDataSync','emgData')  % function form
 disp(['Saved. Look in: ',yourFolder, 'folder for your synced, raw data'])
 
 

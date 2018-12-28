@@ -11,7 +11,7 @@ clc;
 %defpath = '/Users/mikel/Desktop/Data from GOOD experiments_1/';
 %myFolder = uigetdir(defpath);
 
-myFolder = [defpath,'/Step2_Preprocessed_Data/'];
+myFolder = [defpath,'\Step2_Preprocessed_Data\'];
 
 filePattern = fullfile(myFolder, '*.mat');
 matFiles = dir(filePattern);
@@ -58,7 +58,7 @@ dataIMUS.varNames = varNames;
 
 name = 'dataIMUS';
 
-yourFolder = [defpath,'/Step3_ReadyToProcess'];
+yourFolder = [defpath,'Step3_ReadyToProcess'];
 if ~exist(yourFolder, 'dir')
    mkdir(yourFolder)
 end
@@ -67,4 +67,4 @@ disp(['Saving data in: ',yourFolder,'/'])
 filename = [name,'.mat'];
 disp(['File name: ',filename])
 save([yourFolder,'/',filename],'dataIMUS')  % function form
-disp(['Look in: ',yourFolder, 'folder for your data ready to classify'])
+disp(['Look in: ',yourFolder, ' folder for your data ready to classify'])
