@@ -1,5 +1,5 @@
 %% IMU prepro
-function [] = preproIMU(defpath,subjectName)
+%function [] = preproIMU(defpath,subjectName)
 clearvars -except defpath subjectName
 clc;
 
@@ -20,9 +20,9 @@ clc;
 %% Load files
 
 %--------------COMMENT THIS SECTION WHEN USING WITH Main_PreproIMU.m-------
-% subjectName = 'Andrea';
-% defpath = 'D:\OneDrive - Universiteit Twente\2_Internship\All data';
-% 
+% subjectName = 'Michelangelo';
+% defpath = 'D:\OneDrive - Universiteit Twente\2_Internship\Everything\All data\';
+
 % [FileName,PathName,~] = uigetfile(fullfile(defpath,'Step1_SyncedRawData\','*.mat'),'select file');
 % if isequal(FileName,0)
 %     warning('No file selected');
@@ -109,10 +109,11 @@ end
 % STATUS LABELS:
 %     0: null--> between activities OR NOT VALID ACTIVITIES
 %     1: grey
-%     2: GREEN
+%     2: GREEN (useful data)
 %     3: end of text --> after finishing an activity
 %     4 & 5: before experiment starting
 %     6: acknowledge
+%so the only useful data is with status '2'
 
 %Labels are the same in all sensors.
 %Find the indices in s1 and and I can use them with the rest
@@ -166,5 +167,5 @@ end
 disp(['Saving preprocessed data in: ',yourFolder])
 filename = [name,'.mat'];
 disp(['File name: ',filename])
-save([yourFolder,'/',filename],'dataIMULabeled')  % function form
+save([yourFolder,'\',filename],'dataIMULabeled')  % function form
 disp(['Look in: ',yourFolder, 'folder for your preprocessed data'])

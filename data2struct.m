@@ -1,5 +1,5 @@
 %% Reads mat files and stores them in a struct
-function [] = data2struct(defpath) 
+function dataIMUS = data2struct(defpath) 
 
 % by Mikel Mateo - University of Twente - November 2018 
 % for The BioRobotics Institute - Scuola Superiore Sant'Anna 
@@ -8,10 +8,10 @@ function [] = data2struct(defpath)
 clearvars -except defpath
 clc;
 
-%defpath = '/Users/mikel/Desktop/Data from GOOD experiments_1/';
-%myFolder = uigetdir(defpath);
+defpath = 'D:\OneDrive - Universiteit Twente\2_Internship\Everything\All data\';
+%myFolder = uigetdir(defpath);%manually
 
-myFolder = [defpath,'\Step2_Preprocessed_Data\'];
+myFolder = [defpath,'Step2_Preprocessed_Data\'];
 
 filePattern = fullfile(myFolder, '*.mat');
 matFiles = dir(filePattern);

@@ -1,4 +1,4 @@
-function [] = emgImuSync(defpath,subjectName, loadPeaks)
+function [] = emgImuSync(defpath1,subjectName, loadPeaks)
 %% EMG & IMU synchro
 
 %INPUTS:
@@ -6,7 +6,7 @@ function [] = emgImuSync(defpath,subjectName, loadPeaks)
     % subjecName: ejem...subjects' name
     % loadPeaks: 0-load synchro peaks manually; 1-I already have them, load them for me
     
-%OUTPUTS: no outputs
+%OUTPUTS: look in Step1_SyncedRawData
 
 % by Mikel Mateo - University of Twente - November 2018 
 % for The BioRobotics Institute - Scuola Superiore Sant'Anna 
@@ -31,7 +31,7 @@ function [] = emgImuSync(defpath,subjectName, loadPeaks)
 % end
 %------------------------------------------------------------------
 
-mypath = [defpath,'\',subjectName];
+defpath = [defpath1,'DataReadyForMatlab\',subjectName];
 
 %I forget to tap in the end in some cases so say which case needs stopPks
 switch subjectName
@@ -43,13 +43,13 @@ end
 
 %------
 
-f = [dir(fullfile(mypath,'*mat')); dir(fullfile(mypath,'*txt'))];
+f = [dir(fullfile(defpath,'*mat')); dir(fullfile(defpath,'*txt'))];
 
 mon = {'s1','s2','s3','s4','s5','s6'}; %select sensors to read MIKEL
 
 for k = 1:length(f)
   baseFileName = f(k).name;
-  fullFileName = fullfile(mypath, baseFileName);
+  fullFileName = fullfile(defpath, baseFileName);
   if ~iscell(fullFileName)
     fullFileName = {fullFileName};
   end
@@ -255,13 +255,13 @@ else
     pksStopEmg = [pksStopEmg1,pksStopEmg2];
 end
 
-    disp(['Saving synchro peaks in: ',yourFolder,'/'])
+    disp(['Saving synchro peaks in: ',yourFolder,'\'])
     filename = [subjectName,'_syncPks.mat'];
     disp(['File name: ',filename])
     if stopPks
-    save([yourFolder,'/',filename],'pksStartEmg','pksStartImu','pksStopEmg','pksStopImu')
+    save([yourFolder,'\',filename],'pksStartEmg','pksStartImu','pksStopEmg','pksStopImu')
     else
-       save([yourFolder,'/',filename],'pksStartEmg','pksStartImu') 
+       save([yourFolder,'\',filename],'pksStartEmg','pksStartImu') 
     disp(['Look in: ',yourFolder, 'folder for your synced, raw data'])
     end
 end
@@ -359,6 +359,12 @@ plot(t_emg,labelsEmg)
 hold on
 plot(t_emg,statusEmg*10)
 
+%% Now we're gonna remove unuseful repetitions,the ones that went wrong.
+%I could've done a function for this as the code is almost the same for
+%each subject...But "if it ain't broken, don't fix it".
+%Unwanted repetitions are give a status '0'. In the next phase of the
+%program everything that is not status '2' (useful data) will be removed.
+%Also, it reasigns labels in the proper way. See excel file 'Activities and Labels'
 %% socks rep 1 michelangelo
 
 if strcmp(subjectName,'Michelangelo')
