@@ -8,7 +8,7 @@ function dataIMUS = data2struct(defpath)
 clearvars -except defpath
 clc;
 
-defpath = 'D:\OneDrive - Universiteit Twente\2_Internship\Everything\All data\';
+defpath = 'yourPath';
 %myFolder = uigetdir(defpath);%manually
 
 myFolder = [defpath,'Step2_Preprocessed_Data\'];

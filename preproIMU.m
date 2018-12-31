@@ -21,7 +21,7 @@ clc;
 
 %--------------COMMENT THIS SECTION WHEN USING WITH Main_PreproIMU.m-------
 % subjectName = 'Michelangelo';
-% defpath = 'D:\OneDrive - Universiteit Twente\2_Internship\Everything\All data\';
+% defpath = 'yourPath';
 
 % [FileName,PathName,~] = uigetfile(fullfile(defpath,'Step1_SyncedRawData\','*.mat'),'select file');
 % if isequal(FileName,0)

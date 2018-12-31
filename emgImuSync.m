@@ -15,8 +15,8 @@ function [] = emgImuSync(defpath1,subjectName, loadPeaks)
 
 %-----COMMENT this to use as a function of 'Main_PreproIMU.m'---------
 % clear;clc;close all;
-% defpath = 'D:\OneDrive - Universiteit Twente\2_Internship\All data\Data (ReadyForMatlab)';
-% subjectName = 'Michelangelo';
+% defpath = 'yourPath';
+% subjectName = 'sibjects Name';
 % loadPeaks = 1;%do you already have the sync points? Put 1.
 % 
 % disp('Select the folder with your data in the dialogue')
@@ -35,9 +35,9 @@ defpath = [defpath1,'DataReadyForMatlab\',subjectName];
 
 %I forget to tap in the end in some cases so say which case needs stopPks
 switch subjectName
-    case 'Miguel';stopPks = 0;
-    case 'Luis' ;stopPks = 0;
-    case 'Constantina' ;stopPks = 0;
+    case 'x';stopPks = 0;
+    case 'y' ;stopPks = 0;
+    case 'z' ;stopPks = 0;
     otherwise, stopPks = 1;
 end
 

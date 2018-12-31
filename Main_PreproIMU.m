@@ -30,22 +30,11 @@
 %% 
 clear;clc;
 
-subjectName = {'Miguel'
-'Mikel'
-'Luis'
-'Constantina'
-'Leo'
-'Luigi'
-'Andrea'
-'Michelangelo'
-'Valerio'
-% 'Marta'
-% 'Martina'
-'Debora'
+subjectName = {'yourSubjects'
 };
            
 numSubs = numel(subjectName);           
-defpath = 'D:\OneDrive - Universiteit Twente\2_Internship\All data\';
+defpath = 'yourPath';
 loadPeaks = 1;%set to '1' to automatically load peak locations already obtained
               %if not, you'll have to get them manually by putting '0'
 %% Do the magic
